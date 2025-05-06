@@ -22,52 +22,12 @@ class _AddScreenState extends State<AddScreen> {
   ];
 
   final Map<String, List<String>> typesByCategory = {
-    'Cardiovascular Fitness': [
-      'Running',
-      'Brisk walking',
-      'Cycling',
-      'Swimming',
-      'Jump rope',
-      'Dance or aerobic classes',
-    ],
-    'Strength Training': [
-      'Weightlifting',
-      'Push-ups',
-      'Squats',
-      'Resistance band workouts',
-      'CrossFit',
-    ],
-    'Flexibility and Mobility': [
-      'Stretching routines',
-      'Yoga',
-      'Pilates',
-      'Dynamic warm-ups',
-      'Cool-downs',
-    ],
-    'Sports and Recreational Activities': [
-      'Basketball',
-      'Soccer',
-      'Tennis',
-      'Martial arts',
-      'Hiking',
-      'Skiing',
-      'Rock climbing',
-    ],
-    'Lifestyle Physical Activity': [
-      'Walking to work',
-      'Taking stairs',
-      'Housework',
-      'Gardening',
-      'Standing desk',
-      'Walking meetings',
-    ],
-    'Fitness/Medication for Specific Populations': [
-      'Senior fitness',
-      'Pregnancy fitness',
-      'Postpartum fitness',
-      'Adaptive fitness',
-      'Youth fitness',
-    ],
+    'Cardiovascular Fitness': ['Running', 'Brisk walking', 'Cycling', 'Swimming', 'Jump rope', 'Dance or aerobic classes'],
+    'Strength Training': ['Weightlifting', 'Push-ups', 'Squats', 'Resistance band workouts', 'CrossFit'],
+    'Flexibility and Mobility': ['Stretching routines', 'Yoga', 'Pilates', 'Dynamic warm-ups', 'Cool-downs'],
+    'Sports and Recreational Activities': ['Basketball', 'Soccer', 'Tennis', 'Martial arts', 'Hiking', 'Skiing', 'Rock climbing'],
+    'Lifestyle Physical Activity': ['Walking to work', 'Taking stairs', 'Housework', 'Gardening', 'Standing desk', 'Walking meetings'],
+    'Fitness/Medication for Specific Populations': ['Senior fitness', 'Pregnancy fitness', 'Postpartum fitness', 'Adaptive fitness', 'Youth fitness'],
     'Custom': [],
   };
 
@@ -81,19 +41,26 @@ class _AddScreenState extends State<AddScreen> {
     'Custom': ['Reps', 'Minutes', 'Distance (km)', 'Sessions'],
   };
 
+  final List<String> frequencies = ['Daily', 'Weekly', 'Monthly'];
+  final Map<String, List<String>> durationPresets = {
+    'Weekly': ['1 week', '2 weeks', '3 weeks', 'Custom'],
+    'Monthly': ['1 month', '2 months', '3 months', 'Custom']
+  };
 
   String? selectedCategory;
   String? selectedType;
   String? selectedUnit;
+  String? selectedFrequency;
+  String? selectedPreset;
   String minTarget = '';
   String maxTarget = '';
   String durationDays = '';
 
   @override
   Widget build(BuildContext context) {
-    final filteredUnits = selectedCategory != null
-        ? unitsByCategory[selectedCategory] ?? []
-        : [];
+    final filteredUnits = selectedCategory != null ? unitsByCategory[selectedCategory] ?? [] : [];
+
+    final unitLabel = selectedUnit != null ? selectedUnit!.toLowerCase() : 'unit';
 
     return Scaffold(
       body: Stack(
@@ -104,9 +71,7 @@ class _AddScreenState extends State<AddScreen> {
             height: double.infinity,
             width: double.infinity,
           ),
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
-          ),
+          BackdropFilter(filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5)),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -135,38 +100,58 @@ class _AddScreenState extends State<AddScreen> {
                       title: 'Select Type',
                       value: selectedType,
                       items: selectedCategory == 'Custom' ? [] : typesByCategory[selectedCategory] ?? [],
-                      onChanged: (value) {
-                        setState(() {
-                          selectedType = value;
-                        });
-                      },
+                      onChanged: (value) => setState(() => selectedType = value),
                     ),
+
                   if (selectedCategory != null)
                     _buildDropdown(
                       title: 'Select Unit',
                       value: selectedUnit,
                       items: List<String>.from(unitsByCategory[selectedCategory] ?? []),
+                      onChanged: (value) => setState(() => selectedUnit = value),
+                    ),
+
+                  const SizedBox(height: 16),
+                  _buildDropdown(
+                    title: 'Select Frequency',
+                    value: selectedFrequency,
+                    items: frequencies,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedFrequency = value;
+                        selectedPreset = null;
+                        durationDays = '';
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+                  _buildTextField('Target per $unitLabel: Minimum (e.g. 10)', (value) => minTarget = value),
+                  const SizedBox(height: 12),
+                  _buildTextField('Target per $unitLabel: Maximum (e.g. 20)', (value) => maxTarget = value),
+                  const SizedBox(height: 16),
+
+                  if (selectedFrequency == 'Weekly' || selectedFrequency == 'Monthly')
+                    _buildDropdown(
+                      title: 'Duration',
+                      value: selectedPreset,
+                      items: durationPresets[selectedFrequency]!,
                       onChanged: (value) {
                         setState(() {
-                          selectedUnit = value;
+                          selectedPreset = value;
+                          if (value == 'Custom') {
+                            durationDays = '';
+                          } else if (value!.contains('week')) {
+                            durationDays = (int.parse(value.split(' ')[0]) * 7).toString();
+                          } else if (value.contains('month')) {
+                            durationDays = (int.parse(value.split(' ')[0]) * 30).toString();
+                          }
                         });
                       },
                     ),
 
-
-
-                  const SizedBox(height: 16),
-                  _buildTextField('Target per day: Minimum (e.g. 10)', (value) {
-                    minTarget = value;
-                  }),
-                  const SizedBox(height: 12),
-                  _buildTextField('Target per day: Maximum (e.g. 20)', (value) {
-                    maxTarget = value;
-                  }),
-                  const SizedBox(height: 16),
-                  _buildTextField('For how many days? (e.g. 30)', (value) {
-                    durationDays = value;
-                  }),
+                  if ((selectedFrequency == 'Daily') || (selectedPreset == 'Custom'))
+                    _buildTextField('For how many days? (e.g. 30)', (value) => durationDays = value),
 
                   const SizedBox(height: 32),
                   SizedBox(
@@ -221,29 +206,6 @@ class _AddScreenState extends State<AddScreen> {
     );
   }
 
-  Widget _buildCustomTypeInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Custom Type', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextField(
-          decoration: const InputDecoration(
-            hintText: 'Enter your custom type',
-            border: OutlineInputBorder(),
-            filled: true,
-            fillColor: Colors.white,
-          ),
-          onChanged: (value) {
-            setState(() {
-              selectedType = value;
-            });
-          },
-        ),
-      ],
-    );
-  }
-
   Widget _buildTextField(String hint, Function(String) onChanged) {
     return Container(
       decoration: BoxDecoration(
@@ -265,7 +227,7 @@ class _AddScreenState extends State<AddScreen> {
 
   Future<void> _saveHabit() async {
     if (selectedCategory == null || selectedType == null || selectedUnit == null ||
-        minTarget.isEmpty || maxTarget.isEmpty || durationDays.isEmpty) {
+        selectedFrequency == null || minTarget.isEmpty || maxTarget.isEmpty || durationDays.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please complete all fields.')),
@@ -303,21 +265,20 @@ class _AddScreenState extends State<AddScreen> {
         return;
       }
 
-      final habitsRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('habits');
+      final habitsRef = FirebaseFirestore.instance.collection('users').doc(user.uid).collection('habits');
 
       await habitsRef.add({
         'category': selectedCategory,
         'type': selectedType,
         'unit': selectedUnit,
+        'frequency': selectedFrequency,
         'targetMin': parsedMin,
         'targetMax': parsedMax,
         'todayProgress': 0,
         'todayExcess': 0,
         'daysCompleted': 0,
         'durationDays': parsedDuration,
+        'lastLogged': null,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -326,14 +287,12 @@ class _AddScreenState extends State<AddScreen> {
         const SnackBar(content: Text('Habit saved successfully!')),
       );
 
-      // Optional: Delay to avoid UI glitch
       await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.of(context).maybePop();
     } catch (e, stack) {
       debugPrint('❌ Error saving habit: $e');
       debugPrintStack(stackTrace: stack);
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );

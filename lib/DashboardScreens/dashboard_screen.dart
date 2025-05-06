@@ -121,6 +121,7 @@ class DashboardHomeContent extends StatelessWidget {
 
                     final String type = data['type'] ?? 'Habit';
                     final String unit = data['unit'] ?? '';
+                    final String frequency = data['frequency'] ?? 'Daily';
                     final int today = data['todayProgress'] ?? 0;
                     final int target = data['targetPerDay'] ?? 1;
                     final int excess = data['todayExcess'] ?? 0;
@@ -128,73 +129,159 @@ class DashboardHomeContent extends StatelessWidget {
                     final progress = (today / target).clamp(0.0, 1.0);
                     final isComplete = today >= target;
 
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => HabitLoggerPage(
-                              habitId: doc.id,
-                              habitData: data,
-                            ),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.teal[50],
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.shade300,
+                            blurRadius: 6,
+                            offset: const Offset(2, 4),
                           ),
-                        );
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.teal[50],
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.shade300,
-                              blurRadius: 6,
-                              offset: const Offset(2, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$type ($unit)',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.grey[300],
-                              color: isComplete ? Colors.green : Colors.blue,
-                              minHeight: 10,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('$today / $target today'),
-                                if (excess > 0)
-                                  Text('+$excess excess',
-                                      style: const TextStyle(color: Colors.orange)),
-                              ],
-                            ),
-                            if (isComplete)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 4),
-                                child: Text(
-                                  '✅ Completed Today',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green,
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Habit title
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => HabitLoggerPage(
+                                          habitId: doc.id,
+                                          habitData: data,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '$type - $unit',
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Frequency: $frequency',
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold,color: Colors.blue),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+
+                              // 3-dot menu for delete option
+                              PopupMenuButton<String>(
+                                onSelected: (value) async {
+                                  if (value == 'delete') {
+                                    // Confirm deletion
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Delete Habit?'),
+                                        content: const Text(
+                                          'Are you sure you want to delete this habit?\n\nAll stored progress and scores will be permanently lost.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(ctx).pop(false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.of(ctx).pop(true),
+                                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirm == true) {
+                                      // Delete from Firestore
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(user.uid)
+                                          .collection('habits')
+                                          .doc(doc.id)
+                                          .delete();
+
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Habit deleted')),
+                                        );
+                                      }
+                                    }
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // Progress bar and tapable stats
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => HabitLoggerPage(
+                                    habitId: doc.id,
+                                    habitData: data,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                LinearProgressIndicator(
+                                  value: progress,
+                                  backgroundColor: Colors.grey[300],
+                                  color: isComplete ? Colors.green : Colors.blue,
+                                  minHeight: 10,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('$today / $target today'),
+                                    if (excess > 0)
+                                      Text('+$excess excess',
+                                          style: const TextStyle(color: Colors.orange)),
+                                  ],
+                                ),
+                                if (isComplete)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      '✅ Completed Today',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
