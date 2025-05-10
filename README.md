@@ -1,6 +1,6 @@
-# firebase_test
+#Gamified Habit Tracking app
 
-A new Flutter project.
+My new Flutter project.
 
 ## Getting Started
 
