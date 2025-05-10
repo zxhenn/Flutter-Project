@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 import 'screens/profile_setup_screen.dart';
 import 'screens/login_screen.dart';
@@ -11,18 +12,46 @@ import 'screens/welcome_screen.dart';
 import 'DashboardScreens/dashboard_screen.dart';
 import 'screens/profile_setup_screen2.dart';
 import 'screens/forgot_password_screen.dart';
+import 'screens/Terms.dart';
 import 'Settings/settings_page.dart';
 import 'DashboardScreens/friends_screen.dart';
 import 'DashboardScreens/add_screen.dart';
+
+import 'package:awesome_notifications/awesome_notifications.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // Initialize Timezone (only needed if you use scheduled notifications)
+  tz.initializeTimeZones();
+
+  // Initialize Awesome Notifications
+  AwesomeNotifications().initialize(
+    null,
+    [
+      NotificationChannel(
+        channelKey: 'habit_timer_channel',
+        channelName: 'Habit Timer Notifications',
+        channelDescription: 'Notifications for habit tracking',
+        defaultColor: const Color(0xFF2196F3),
+        importance: NotificationImportance.High,
+        ledColor: Colors.white,
+      ),
+    ],
+    debug: true,
+  );
+
+  if (!await AwesomeNotifications().isNotificationAllowed()) {
+    await AwesomeNotifications().requestPermissionToSendNotifications();
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final hasSeenWelcome = prefs.getBool('hasSeenWelcome') ?? false;
 
   runApp(MyApp(hasSeenWelcome: hasSeenWelcome));
 }
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 class MyApp extends StatelessWidget {
   final bool hasSeenWelcome;
@@ -50,7 +79,10 @@ class MyApp extends StatelessWidget {
         '/settings_page': (context) => const SettingsPage(),
         '/friends_screen': (context) => const FriendsScreen(),
         '/add_screen': (context) => const AddScreen(),
+        '/terms': (context) => const TermsScreen(),
+
       },
+      navigatorObservers: [routeObserver],
     );
   }
 }
@@ -58,45 +90,39 @@ class MyApp extends StatelessWidget {
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
-  Future<bool> _isProfileComplete(String userId) async {
+  Future<String> _getProfileStatus(String userId) async {
     try {
-      final profilesDoc = await FirebaseFirestore.instance
-          .collection('Profiles')
-          .doc(userId)
-          .get();
+      final doc = await FirebaseFirestore.instance.collection('Profiles').doc(userId).get();
 
-      if (!profilesDoc.exists) {
-        return false;
-      }
+      if (!doc.exists) return 'incomplete1';
 
-      final profileData = profilesDoc.data();
-      if (profileData == null) {
-        return false;
-      }
+      final data = doc.data();
+      if (data == null) return 'incomplete1';
 
-      // Safer reading
-      final name = (profileData['Name'] ?? '').toString().trim();
-      final height = (profileData['Height'] ?? '').toString().trim();
-      final weight = (profileData['Weight'] ?? '').toString().trim();
-      final ageRaw = profileData['Age'];
+      final name = (data['Name'] ?? '').toString().trim();
+      final height = (data['Height'] ?? '').toString().trim();
+      final weight = (data['Weight'] ?? '').toString().trim();
+      final focusArea = (data['FocusArea'] ?? '').toString().trim();
+      final ageRaw = data['Age'];
 
       int age = 0;
-      if (ageRaw is int) {
-        age = ageRaw;
-      } else if (ageRaw is String) {
-        age = int.tryParse(ageRaw) ?? 0;
-      }
+      if (ageRaw is int) age = ageRaw;
+      if (ageRaw is String) age = int.tryParse(ageRaw) ?? 0;
 
-      debugPrint('🔥 Profile Check => Name: $name, Height: $height, Weight: $weight, Age: $age');
+      debugPrint('🔥 Profile Data: Name=$name, Height=$height, Weight=$weight, Age=$age, Focus=$focusArea');
 
       if (name.isEmpty || height.isEmpty || weight.isEmpty || age <= 0) {
-        return false; // Missing or invalid info
+        return 'incomplete1';
       }
 
-      return true; // All info present and valid
+      if (focusArea.isEmpty) {
+        return 'incomplete2';
+      }
+
+      return 'complete';
     } catch (e) {
-      debugPrint('🔥 Profile Check Error: $e');
-      return false;
+      debugPrint('🔥 Profile check error: $e');
+      return 'incomplete1';
     }
   }
 
@@ -104,38 +130,37 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        if (authSnapshot.hasData) {
-          final user = authSnapshot.data!;
-          return FutureBuilder<bool>(
-            future: _isProfileComplete(user.uid),
-            builder: (context, profileSnapshot) {
-              if (profileSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
+        final user = snapshot.data;
+        if (user == null) return const LoginScreen();
 
-              if (profileSnapshot.hasError) {
-                return const LoginScreen();
-              }
+        return FutureBuilder<String>(
+          future: _getProfileStatus(user.uid),
+          builder: (context, profileSnapshot) {
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
 
-              if (profileSnapshot.data == true) {
-                return const DashboardScreen();
-              } else {
-                return const ProfileSetupScreen(); // Start Profile Setup flow
-              }
-            },
-          );
-        } else {
-          return const LoginScreen();
-        }
+            if (profileSnapshot.hasError) {
+              return const LoginScreen();
+            }
+
+            final status = profileSnapshot.data;
+            debugPrint('🚦 Profile Status Result: $status');
+
+            if (status == 'complete') {
+              return const DashboardScreen();
+            } else if (status == 'incomplete2') {
+              return const ProfileSetupScreen2();
+            } else {
+              return const ProfileSetupScreen();
+            }
+          },
+        );
       },
     );
   }

@@ -29,23 +29,34 @@ class BottomNavBar extends StatelessWidget {
           icon: Icon(Icons.flag),
           label: 'Challenge',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.add_circle, size: 40),
-          label: '',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.leaderboard),
-          label: 'Leaderboard',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.emoji_events),
-          label: 'Badge',
-        ),
+
         BottomNavigationBarItem(
           icon: Icon(Icons.person_add),
           label: 'Friends',
         ),
+
+        BottomNavigationBarItem(
+          icon: Icon(Icons.add_circle, size: 40),
+          label: '',
+        ),
+
+        BottomNavigationBarItem(
+          icon: Icon(Icons.leaderboard),
+          label: 'Leaderboard',
+        ),
+
+        BottomNavigationBarItem(
+          icon: Icon(Icons.emoji_events),
+          label: 'Badge',
+        ),
+
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings),
+          label: 'Settings',
+        ),
+
       ],
+
 
     );
   }

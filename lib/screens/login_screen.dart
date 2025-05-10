@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,8 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut(); // Ensure account selection
-
+      await googleSignIn.signOut(); // Force account picker
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
@@ -62,10 +62,28 @@ class _LoginScreenState extends State<LoginScreen> {
         idToken: googleAuth.idToken,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = userCredential.user;
+      if (user == null) return;
+
+      // 🔥 Create empty profile if not exist
+      final profileDoc = FirebaseFirestore.instance.collection('Profiles').doc(user.uid);
+      final snapshot = await profileDoc.get();
+
+      if (!snapshot.exists) {
+        await profileDoc.set({
+          'Name': '',
+          'Age': 0,
+          'Height': '',
+          'Weight': '',
+          'FocusArea': '',
+          'Email': user.email,
+          'Uid': user.uid,
+        });
+      }
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      Navigator.pushReplacementNamed(context, '/auth'); // ✅ Route through AuthWrapper
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

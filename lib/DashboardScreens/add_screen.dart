@@ -78,7 +78,7 @@ class _AddScreenState extends State<AddScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Add New Habit', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                  const Text('Add New Habit', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue)),
                   const SizedBox(height: 24),
 
                   _buildDropdown(
@@ -95,13 +95,40 @@ class _AddScreenState extends State<AddScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  if (selectedCategory != null)
+                  if (selectedCategory != null && selectedCategory != 'Custom')
                     _buildDropdown(
                       title: 'Select Type',
                       value: selectedType,
-                      items: selectedCategory == 'Custom' ? [] : typesByCategory[selectedCategory] ?? [],
+                      items: typesByCategory[selectedCategory] ?? [],
                       onChanged: (value) => setState(() => selectedType = value),
                     ),
+
+                  if (selectedCategory == 'Custom') ...[
+                    const Text('Custom Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.shade300,
+                            blurRadius: 6,
+                            offset: const Offset(2, 4),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        onChanged: (value) => setState(() => selectedType = value),
+                        decoration: const InputDecoration(
+                          hintText: 'Enter custom type (e.g. Coding, etc..)',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   if (selectedCategory != null)
                     _buildDropdown(
@@ -125,12 +152,20 @@ class _AddScreenState extends State<AddScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 16),
-                  _buildTextField('Target per $unitLabel: Minimum (e.g. 10)', (value) => minTarget = value),
-                  const SizedBox(height: 12),
-                  _buildTextField('Target per $unitLabel: Maximum (e.g. 20)', (value) => maxTarget = value),
+                  // Minimum Target Field
+                  const Text('Minimum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  _buildTextField('e.g. 10 ${unitLabel.isNotEmpty ? unitLabel : ""}', (value) => minTarget = value),
                   const SizedBox(height: 16),
 
+// Maximum Target Field
+                  const Text('Maximum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  _buildTextField('e.g. 20 ${unitLabel.isNotEmpty ? unitLabel : ""}', (value) => maxTarget = value),
+                  const SizedBox(height: 16),
+
+
+                  // Duration Field
                   if (selectedFrequency == 'Weekly' || selectedFrequency == 'Monthly')
                     _buildDropdown(
                       title: 'Duration',
@@ -150,9 +185,12 @@ class _AddScreenState extends State<AddScreen> {
                       },
                     ),
 
-                  if ((selectedFrequency == 'Daily') || (selectedPreset == 'Custom'))
-                    _buildTextField('For how many days? (e.g. 30)', (value) => durationDays = value),
 
+                  if ((selectedFrequency == 'Daily') || (selectedPreset == 'Custom')) ...[
+                    const Text('Duration (Days)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    _buildTextField('e.g. 30', (value) => durationDays = value),
+                  ],
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,

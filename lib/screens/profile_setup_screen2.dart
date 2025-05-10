@@ -11,7 +11,7 @@ class ProfileSetupScreen2 extends StatefulWidget {
 
 class _ProfileSetupScreen2State extends State<ProfileSetupScreen2> {
   String selectedFocus = '';
-  bool _isSaving = false; // Add loading state
+  bool _isSaving = false;
 
   Future<void> onProfileSetupComplete() async {
     if (selectedFocus.isEmpty) {
@@ -22,7 +22,7 @@ class _ProfileSetupScreen2State extends State<ProfileSetupScreen2> {
       return;
     }
 
-    setState(() => _isSaving = true); // Show loading indicator
+    setState(() => _isSaving = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -35,11 +35,9 @@ class _ProfileSetupScreen2State extends State<ProfileSetupScreen2> {
       }
 
       await FirebaseFirestore.instance
-          .collection('Profiles') // ✅ Fixed: Always use Profiles
+          .collection('Profiles')
           .doc(user.uid)
-          .update({
-        'FocusArea': selectedFocus,
-      });
+          .update({'FocusArea': selectedFocus});
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/dashboard');
@@ -49,70 +47,75 @@ class _ProfileSetupScreen2State extends State<ProfileSetupScreen2> {
         SnackBar(content: Text("Error saving focus: $e")),
       );
     } finally {
-      if (mounted) setState(() => _isSaving = false); // Stop loading
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  Text(
-                    'WHAT DO YOU WANT TO FOCUS ON?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[800],
-                      letterSpacing: 1.2,
+      body: Stack(
+        children: [
+          SizedBox.expand(
+            child: Image.asset('assets/images/bg.png', fit: BoxFit.cover),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Almost done!',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Focus area buttons
-                  Wrap(
-                    spacing: 20,
-                    runSpacing: 20,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      focusButton('Workout', Icons.fitness_center),
-                      focusButton('Running', Icons.directions_run),
-                      focusButton('Medicine', Icons.medical_services),
-                      focusButton('Therapy', Icons.healing),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Done button
-                  ElevatedButton(
-                    onPressed: _isSaving ? null : onProfileSetupComplete,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Choose your main area of focus to personalize your experience.',
+                      style: TextStyle(fontSize: 16, color: Colors.black87),
                     ),
-                    child: _isSaving
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Done', style: TextStyle(fontSize: 18)),
-                  ),
-                ],
+                    const SizedBox(height: 30),
+
+                    Wrap(
+                      spacing: 20,
+                      runSpacing: 20,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        focusButton('Workout', Icons.fitness_center),
+                        focusButton('Running', Icons.directions_run),
+                        focusButton('Medicine', Icons.medical_services),
+                        focusButton('Therapy', Icons.healing),
+                      ],
+                    ),
+
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : onProfileSetupComplete,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: _isSaving
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('Finish Setup ✅', style: TextStyle(fontSize: 16)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  // Widget for focus area button
   Widget focusButton(String label, IconData icon) {
     return GestureDetector(
       onTap: () {

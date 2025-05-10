@@ -68,9 +68,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
             });
 
             try {
+              final query = value.trim().toLowerCase();
               final snapshot = await FirebaseFirestore.instance
-                  .collection('users')
-                  .where(isSearchingByEmail ? 'email' : 'name', isEqualTo: value.trim())
+                  .collection('Profiles')
+                  .where('searchableField', isGreaterThanOrEqualTo: query)
+                  .where('searchableField', isLessThanOrEqualTo: '$query\uf8ff')
                   .get();
 
               if (!mounted) return;
@@ -104,6 +106,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
             }
           }
 
+
           return AlertDialog(
             title: const Text('Add Friend'),
             content: Column(
@@ -112,11 +115,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
               children: [
                 Text(
                   isSearchingByEmail
-                      ? '🔍 Currently searching by Email'
-                      : '🔍 Currently searching by Name',
+                      ? 'Currently searching by: Email'
+                      : 'Currently searching by: Name',
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                     color: Colors.blue.shade700,
                   ),
                 ),
