@@ -60,6 +60,7 @@ class DashboardHomeContent extends StatefulWidget {
 
 class _DashboardHomeContentState extends State<DashboardHomeContent> {
   Map<String, dynamic> categoryPoints = {};
+  String _filter = 'All';
 
   @override
   void initState() {
@@ -69,13 +70,27 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
 
   Future<void> _loadCategoryPoints() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || !mounted) return;
 
     final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
     final data = doc.data() ?? {};
     setState(() {
       categoryPoints = Map<String, dynamic>.from(data['categoryPoints'] ?? {});
     });
+  }
+
+  IconData getHabitIcon(String type) {
+    final typeLower = type.toLowerCase();
+    if (typeLower.contains('run')) return Icons.directions_run;
+    if (typeLower.contains('walk')) return Icons.directions_walk;
+    if (typeLower.contains('cycle') || typeLower.contains('bike')) return Icons.pedal_bike;
+    if (typeLower.contains('swim')) return Icons.pool;
+    if (typeLower.contains('weight') || typeLower.contains('lift')) return Icons.fitness_center;
+    if (typeLower.contains('yoga')) return Icons.self_improvement;
+    if (typeLower.contains('meditate')) return Icons.spa;
+    if (typeLower.contains('sport') || typeLower.contains('ball')) return Icons.sports_soccer;
+    if (typeLower.contains('push') || typeLower.contains('squat')) return Icons.accessibility_new;
+    return Icons.star_border;
   }
 
   @override
@@ -92,9 +107,27 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
           const TopHeader(),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text('Your Habits',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            child: Text('Your Habits', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButton<String>(
+              value: _filter,
+              items: const [
+                DropdownMenuItem(value: 'All', child: Text('All')),
+                DropdownMenuItem(value: 'Ongoing', child: Text('Ongoing')),
+                DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _filter = value);
+                }
+              },
+              isExpanded: true,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          const SizedBox(height: 10),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -108,32 +141,8 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'You haven’t set up your habit to track.',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const AddScreen()),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[700],
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('Setup Now',
-                              style: TextStyle(color: Colors.white, fontSize: 16)),
-                        ),
-                      ],
-                    ),
+                  return const Center(
+                    child: Text('You haven’t set up your habit to track.', style: TextStyle(fontSize: 18)),
                   );
                 }
 
@@ -150,7 +159,8 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                     final String unit = data['unit'] ?? '';
                     final String frequency = data['frequency'] ?? 'Daily';
                     final int targetMin = data['targetMin'] ?? 0;
-                    final int targetMax = data['targetMax'] ?? 0;
+                    final double targetMax = (data['targetMax'] ?? 0).toDouble();
+                    final double todayProgress = (data['todayProgress'] ?? 0).toDouble();
                     final int durationDays = data['durationDays'] ?? 1;
                     final int daysCompleted = data['daysCompleted'] ?? 0;
                     final String category = data['category'] ?? 'General';
@@ -163,7 +173,11 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                     final Timestamp? createdAt = data['createdAt'];
                     final DateTime startDate = createdAt?.toDate() ?? DateTime.now();
                     final int daysSinceStart = DateTime.now().difference(startDate).inDays + 1;
-                    final double consistencyRatio = PointingSystem.calculateConsistencyRatio(daysCompleted, daysSinceStart);
+                    final double consistencyRatio =
+                    PointingSystem.calculateConsistencyRatio(daysCompleted, daysSinceStart);
+
+                    if (_filter == 'Completed' && !isHabitDone) return const SizedBox.shrink();
+                    if (_filter == 'Ongoing' && isHabitDone) return const SizedBox.shrink();
 
                     return GestureDetector(
                       onTap: () {
@@ -175,7 +189,10 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                               habitData: data,
                             ),
                           ),
-                        );
+                        ).then((_) {
+                          _loadCategoryPoints();
+                          setState(() {});
+                        });
                       },
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 16),
@@ -194,16 +211,38 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('$type - $unit', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Row(
+                              children: [
+                                Icon(getHabitIcon(type), size: 20, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Text('$type - $unit',
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
                             const SizedBox(height: 4),
-                            Text('Frequency: $frequency', style: const TextStyle(fontSize: 14, color: Colors.blue)),
+                            Text('Frequency: $frequency',
+                                style: const TextStyle(fontSize: 14, color: Colors.blue)),
                             Text('Minimum of $targetMin $unit'),
                             Text('Maximum of $targetMax $unit'),
-                            Text('Days: $daysCompleted / $durationDays'),
-                            Text('Completed: $daysCompleted / $durationDays'),
-                            Text('Progress: $progressLabel', style: TextStyle(color: isHabitDone ? Colors.green : Colors.orange)),
+                            Text('Days Passed: $daysSinceStart'),
+                            Text('Days Logged: $daysCompleted / $durationDays'),
 
                             const SizedBox(height: 8),
+                            const Text('Progress Today', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: LinearProgressIndicator(
+                                value: (todayProgress / targetMax).clamp(0.0, 1.0),
+                                minHeight: 8,
+                                backgroundColor: Colors.grey.shade300,
+                                color: todayProgress >= targetMin ? Colors.green : Colors.orange,
+                              ),
+                            ),
+                            Text('$todayProgress / $targetMax $unit'),
+
+                            const SizedBox(height: 12),
+                            Text('Overall Progress: $progressLabel',
+                                style: TextStyle(color: isHabitDone ? Colors.green : Colors.orange)),
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: LinearProgressIndicator(
@@ -213,13 +252,11 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                                 color: isHabitDone ? Colors.green : Colors.blue,
                               ),
                             ),
+
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Tooltip(
-                                  message: 'Consistency is your streak compared to how long this habit has existed. Higher is better!',
-                                  child: const Icon(Icons.info_outline, size: 18, color: Colors.indigo),
-                                ),
+                                const Icon(Icons.info_outline, size: 18, color: Colors.indigo),
                                 const SizedBox(width: 6),
                                 const Text('Consistency', style: TextStyle(fontWeight: FontWeight.bold)),
                               ],
@@ -240,62 +277,16 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                             ),
                             Text('${(consistencyRatio * 100).toStringAsFixed(1)}%',
                                 style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: consistencyRatio >= 0.9
-                                        ? Colors.green
-                                        : consistencyRatio >= 0.6
-                                        ? Colors.orange
-                                        : Colors.red)),
+                                  fontWeight: FontWeight.w500,
+                                  color: consistencyRatio >= 0.9
+                                      ? Colors.green
+                                      : consistencyRatio >= 0.6
+                                      ? Colors.orange
+                                      : Colors.red,
+                                )),
                             const SizedBox(height: 10),
-                            Text('🏆 $category Points: $categoryScore', style: const TextStyle(color: Colors.deepPurple)),
-
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: PopupMenuButton<String>(
-                                onSelected: (value) async {
-                                  if (value == 'delete') {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text('Delete Habit?'),
-                                        content: const Text('Are you sure you want to delete this habit?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(ctx).pop(false),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () => Navigator.of(ctx).pop(true),
-                                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-
-                                    if (confirm == true) {
-                                      await FirebaseFirestore.instance
-                                          .collection('users')
-                                          .doc(user.uid)
-                                          .collection('habits')
-                                          .doc(doc.id)
-                                          .delete();
-
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Habit deleted')),
-                                        );
-                                      }
-                                    }
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Delete', style: TextStyle(color: Colors.red)),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            Text('🏆 $category Points: $categoryScore',
+                                style: const TextStyle(color: Colors.deepPurple)),
                           ],
                         ),
                       ),

@@ -13,6 +13,7 @@ class LeaderboardScreen extends StatefulWidget {
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
   List<Map<String, dynamic>> rankedUsers = [];
   bool isLoading = true;
+  String filter = 'Friends';
 
   @override
   void initState() {
@@ -21,39 +22,67 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Future<void> fetchLeaderboard() async {
+    setState(() => isLoading = true);
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     final currentUserId = user.uid;
     final currentUserDoc = await FirebaseFirestore.instance.collection('users').doc(currentUserId).get();
     final currentUserName = currentUserDoc.data()?['displayName'] ?? 'You';
-    final currentUserPoints = currentUserDoc.data()?['totalPoints'] ?? 0;
+    final currentUserCategoryPoints = currentUserDoc.data()?['categoryPoints'] ?? {};
+    final currentUserPoints = (currentUserCategoryPoints as Map<String, dynamic>)
+        .values
+        .fold(0, (sum, val) => sum + (val is int ? val : 0));
 
-    List<Map<String, dynamic>> allUsers = [
-      {
+    List<Map<String, dynamic>> allUsers = [];
+
+    if (filter == 'Friends') {
+      allUsers.add({
         'uid': currentUserId,
         'name': currentUserName,
         'points': currentUserPoints,
+      });
+
+      final friendsSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .get();
+
+      for (final friendDoc in friendsSnapshot.docs) {
+        final friendId = friendDoc.id;
+        final friendUserDoc = await FirebaseFirestore.instance.collection('users').doc(friendId).get();
+
+        if (friendUserDoc.exists) {
+          final friendName = friendUserDoc.data()?['displayName'] ?? 'Friend';
+          final friendCategoryPoints = friendUserDoc.data()?['categoryPoints'] ?? {};
+          final friendPoints = (friendCategoryPoints as Map<String, dynamic>)
+              .values
+              .fold(0, (sum, val) => sum + (val is int ? val : 0));
+
+          allUsers.add({
+            'uid': friendId,
+            'name': friendName,
+            'points': friendPoints,
+          });
+        }
       }
-    ];
+    } else if (filter == 'Global') {
+      final allUserDocs = await FirebaseFirestore.instance.collection('users').get();
 
-    final friendsSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUserId)
-        .collection('friends')
-        .get();
+      for (final doc in allUserDocs.docs) {
+        final userData = doc.data();
+        final name = userData['displayName'] ?? 'User';
+        final categoryPoints = userData['categoryPoints'] ?? {};
+        final points = (categoryPoints as Map<String, dynamic>)
+            .values
+            .fold(0, (sum, val) => sum + (val is int ? val : 0));
 
-    for (final friendDoc in friendsSnapshot.docs) {
-      final friendId = friendDoc.id;
-      final friendUserDoc = await FirebaseFirestore.instance.collection('users').doc(friendId).get();
-
-      if (friendUserDoc.exists) {
-        final friendName = friendUserDoc.data()?['displayName'] ?? 'Friend';
-        final friendPoints = friendUserDoc.data()?['totalPoints'] ?? 0;
         allUsers.add({
-          'uid': friendId,
-          'name': friendName,
-          'points': friendPoints,
+          'uid': doc.id,
+          'name': name,
+          'points': points,
         });
       }
     }
@@ -74,11 +103,29 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const TopHeader(),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Leaderboard',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Leaderboard',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+                  ),
+                  DropdownButton<String>(
+                    value: filter,
+                    items: const [
+                      DropdownMenuItem(value: 'Friends', child: Text('Friends')),
+                      DropdownMenuItem(value: 'Global', child: Text('Global')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => filter = value);
+                        fetchLeaderboard();
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
             Expanded(

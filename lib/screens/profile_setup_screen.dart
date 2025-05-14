@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -12,7 +13,7 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
+  DateTime? _selectedBirthday;
 
   String _selectedGender = 'Male';
   String? _selectedHeight;
@@ -22,6 +23,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String _weightUnit = 'kg';
   bool _agreedToTerms = false;
 
+  int calculateAge(DateTime birthday) {
+    final today = DateTime.now();
+    int age = today.year - birthday.year;
+    if (today.month < birthday.month || (today.month == birthday.month && today.day < birthday.day)) {
+      age--;
+    }
+    return age;
+  }
+
   List<String> get heightOptions {
     if (_heightUnit == 'cm') {
       return List.generate(81, (i) => '${140 + i} cm');
@@ -29,8 +39,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       List<String> imperial = [];
       for (int ft = 4; ft <= 7; ft++) {
         for (int inch = 0; inch < 12; inch++) {
-          if (ft == 4 && inch < 8) continue; // Start at 4'8"
-          if (ft == 7 && inch > 2) break; // End at 7'2"
+          if (ft == 4 && inch < 8) continue;
+          if (ft == 7 && inch > 2) break;
           imperial.add("${ft}'${inch}\"");
         }
       }
@@ -48,20 +58,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   Future<void> _saveProfile() async {
     if (_formKey.currentState?.validate() != true) return;
-    if (!_agreedToTerms) {
+    if (!_agreedToTerms || _selectedBirthday == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must agree to the Terms and Conditions.')),
+        const SnackBar(content: Text('Please complete all required fields.')),
       );
       return;
     }
+
     final name = _nameController.text.trim();
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    final calculatedAge = calculateAge(_selectedBirthday!);
+
     await FirebaseFirestore.instance.collection('Profiles').doc(user.uid).set({
-      'Name': _nameController.text.trim(),
-      'Age': int.tryParse(_ageController.text.trim()) ?? 0,
+      'Name': name,
+      'Age': calculatedAge,
+      'Birthday': Timestamp.fromDate(_selectedBirthday!),
       'Height': _selectedHeight ?? '',
       'Weight': _selectedWeight ?? '',
       'Gender': _selectedGender,
@@ -106,7 +120,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     const SizedBox(height: 30),
 
                     _buildTextField(_nameController, 'Full Name', Icons.person),
-                    _buildTextField(_ageController, 'Age', Icons.cake, type: TextInputType.number),
+                    _buildBirthdayPicker(),
 
                     _buildDropdownRow(
                       label: 'Height',
@@ -118,7 +132,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       onUnitChanged: (val) {
                         setState(() {
                           _heightUnit = val ?? 'cm';
-                          _selectedHeight = null; // Reset on change
+                          _selectedHeight = null;
                         });
                       },
                     ),
@@ -193,7 +207,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text('Continue to Next Step 🚀'),
+                        child: const Text('Continue to Next Step 🚀', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -203,6 +217,38 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBirthdayPicker() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+        ],
+      ),
+      child: ListTile(
+        title: Text(_selectedBirthday == null
+            ? 'Select Birthday'
+            : DateFormat.yMMMd().format(_selectedBirthday!)),
+        leading: const Icon(Icons.calendar_today),
+        onTap: () async {
+          DateTime now = DateTime.now();
+          final pickedDate = await showDatePicker(
+            context: context,
+            initialDate: _selectedBirthday ?? DateTime(now.year - 18),
+            firstDate: DateTime(1900),
+            lastDate: DateTime(now.year, now.month, now.day),
+          );
+          if (pickedDate != null) {
+            setState(() => _selectedBirthday = pickedDate);
+          }
+        },
       ),
     );
   }
@@ -247,7 +293,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }) {
     return Row(
       children: [
-        // Unit dropdown
         Container(
           width: 80,
           margin: const EdgeInsets.only(right: 8, bottom: 20),
@@ -267,8 +312,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             onChanged: onUnitChanged,
           ),
         ),
-
-        // Value dropdown
         Expanded(
           child: Container(
             margin: const EdgeInsets.only(bottom: 20),

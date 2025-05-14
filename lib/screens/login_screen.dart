@@ -29,13 +29,39 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
+      final user = credential.user;
+
+      if (user != null && !user.emailVerified) {
+        await FirebaseAuth.instance.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please verify your email before logging in.')),
+        );
+        return;
+      }
+
+      // ✅ Check if profile is complete
+      final profileDoc = await FirebaseFirestore.instance
+          .collection('Profiles')
+          .doc(user!.uid)
+          .get();
+
+      final profile = profileDoc.data();
+      final hasProfile = profile != null &&
+          (profile['Name'] ?? '').toString().isNotEmpty &&
+          (profile['Height'] ?? '').toString().isNotEmpty &&
+          (profile['Weight'] ?? '').toString().isNotEmpty &&
+          ((profile['Age'] ?? 0) is int ? profile['Age'] : 0) > 0;
+
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      Navigator.pushReplacementNamed(
+        context,
+        hasProfile ? '/dashboard' : '/profile_setup',
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -45,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
 
   // Google Sign-In

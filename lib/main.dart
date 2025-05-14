@@ -16,7 +16,7 @@ import 'screens/Terms.dart';
 import 'Settings/settings_page.dart';
 import 'DashboardScreens/friends_screen.dart';
 import 'DashboardScreens/add_screen.dart';
-
+import 'Settings/EditProfileScreen.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 
 void main() async {
@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
         '/friends_screen': (context) => const FriendsScreen(),
         '/add_screen': (context) => const AddScreen(),
         '/terms': (context) => const TermsScreen(),
-
+        '/EditProfileScreen':(context) => const EditProfileScreen(),
       },
       navigatorObservers: [routeObserver],
     );

@@ -45,6 +45,7 @@ dependencies:
       url: https://github.com/rafaelsetragni/awesome_notifications.git
       ref: master
   timezone: ^0.9.2
+  lottie: ^2.6.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -75,6 +76,8 @@ flutter:
     - assets/images/facebook_login.png
     - assets/images/instagram_login.png
     - assets/images/phone_number_login.png
+    - assets/animations/running.json
+
   fonts:
     - family: Montserrat
       fonts:
