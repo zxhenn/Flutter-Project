@@ -1,16 +1,16 @@
-// addition/bottom_navbar.dart
 import 'package:flutter/material.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final bool hasPendingRequests;
 
   const BottomNavBar({
-    super.key, // simplified
+    super.key,
     required this.currentIndex,
     required this.onTap,
+    this.hasPendingRequests = false,
   });
-
 
   @override
   Widget build(BuildContext context) {
@@ -20,44 +20,35 @@ class BottomNavBar extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       selectedItemColor: Colors.blue,
       unselectedItemColor: Colors.grey,
-      items: const [
+      items: [
+        const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
+        const BottomNavigationBarItem(icon: Icon(Icons.flag), label: 'Challenge'),
         BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.flag),
-          label: 'Challenge',
-        ),
-
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_add),
+          icon: Stack(
+            children: [
+              const Icon(Icons.person_add),
+              if (hasPendingRequests)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           label: 'Friends',
         ),
-
-        BottomNavigationBarItem(
-          icon: Icon(Icons.add_circle, size: 40),
-          label: '',
-        ),
-
-        BottomNavigationBarItem(
-          icon: Icon(Icons.leaderboard),
-          label: 'Leaderboard',
-        ),
-
-        BottomNavigationBarItem(
-          icon: Icon(Icons.emoji_events),
-          label: 'Badge',
-        ),
-
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
-          label: 'Settings',
-        ),
-
+        const BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 40), label: ''),
+        const BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: 'Leaderboard'),
+        const BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Badge'),
+        const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
-
-
     );
   }
 }

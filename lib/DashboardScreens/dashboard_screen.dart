@@ -12,7 +12,7 @@ import '/addition/bottom_navbar.dart';
 import 'friends_screen.dart';
 import '/Settings/settings_page.dart';
 import '/utils/pointing_system.dart';
-
+import '/addition/awesome_notifications.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -22,6 +22,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  bool hasPendingRequests = false;
+  bool alreadyNotified = false;
 
   final List<Widget> _screens = [
     const DashboardHomeContent(),
@@ -32,6 +34,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     const BadgeScreen(),
     const SettingsPage(),
   ];
+  @override
+  void initState() {
+    super.initState();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('friend_requests')
+          .snapshots()
+          .listen((snapshot) {
+        final hasRequests = snapshot.docs.isNotEmpty;
+        if (mounted) {
+          setState(() {
+            hasPendingRequests = hasRequests;
+          });
+
+          if (hasRequests && !alreadyNotified) {
+            showFriendRequestNotification(); // from awesome_notifications.dart
+            alreadyNotified = true;
+          }
+
+          if (!hasRequests) alreadyNotified = false;
+        }
+      });
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -46,6 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       bottomNavigationBar: BottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        hasPendingRequests: hasPendingRequests,
       ),
     );
   }

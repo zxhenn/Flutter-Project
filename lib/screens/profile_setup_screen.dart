@@ -23,6 +23,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   String _weightUnit = 'kg';
   bool _agreedToTerms = false;
 
+  String _nameStatus = '';
+  Color _nameStatusColor = Colors.transparent;
+
   int calculateAge(DateTime birthday) {
     final today = DateTime.now();
     int age = today.year - birthday.year;
@@ -56,6 +59,30 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
   }
 
+  Future<void> _checkNameAvailability(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      setState(() {
+        _nameStatus = '';
+        _nameStatusColor = Colors.transparent;
+      });
+      return;
+    }
+
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final query = await FirebaseFirestore.instance
+        .collection('Profiles')
+        .where('Name', isEqualTo: trimmed)
+        .get();
+
+    final taken = query.docs.any((doc) => doc.id != currentUserId);
+
+    setState(() {
+      _nameStatus = taken ? '❌ Name already taken' : '✅ Name available';
+      _nameStatusColor = taken ? Colors.red : Colors.green;
+    });
+  }
+
   Future<void> _saveProfile() async {
     if (_formKey.currentState?.validate() != true) return;
     if (!_agreedToTerms || _selectedBirthday == null) {
@@ -70,10 +97,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    final nameCheck = await FirebaseFirestore.instance
+        .collection('Profiles')
+        .where('Name', isEqualTo: name)
+        .get();
+
+    if (nameCheck.docs.isNotEmpty && nameCheck.docs.first.id != user.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name already exists. Please choose another.')),
+      );
+      return;
+    }
+
     final calculatedAge = calculateAge(_selectedBirthday!);
 
     await FirebaseFirestore.instance.collection('Profiles').doc(user.uid).set({
       'Name': name,
+      'NameLower': name.toLowerCase(),
+// 🔧 ensures search always matches
       'Age': calculatedAge,
       'Birthday': Timestamp.fromDate(_selectedBirthday!),
       'Height': _selectedHeight ?? '',
@@ -108,15 +149,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    const Text(
-                      '👋 Welcome to Solitum!',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
-                    ),
+                    const Text('👋 Welcome to Solitum!',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Let’s set up your profile to get started.',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
+                    const Text('Let’s set up your profile to get started.',
+                        style: TextStyle(fontSize: 16, color: Colors.black87)),
                     const SizedBox(height: 30),
 
                     _buildTextField(_nameController, 'Full Name', Icons.person),
@@ -196,7 +233,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
@@ -221,6 +257,45 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
+  Widget _buildTextField(TextEditingController controller, String hint, IconData icon,
+      {TextInputType type = TextInputType.text}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+            ],
+          ),
+          child: TextFormField(
+            controller: controller,
+            keyboardType: type,
+            onChanged: hint == 'Full Name' ? _checkNameAvailability : null,
+            validator: (value) => value!.isEmpty ? 'Please enter $hint' : null,
+            decoration: InputDecoration(
+              hintText: hint,
+              prefixIcon: Icon(icon),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        ),
+        if (hint == 'Full Name' && _nameStatus.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 12),
+            child: Text(
+              _nameStatus,
+              style: TextStyle(color: _nameStatusColor, fontWeight: FontWeight.w500),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildBirthdayPicker() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -238,46 +313,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             : DateFormat.yMMMd().format(_selectedBirthday!)),
         leading: const Icon(Icons.calendar_today),
         onTap: () async {
-          DateTime now = DateTime.now();
-          final pickedDate = await showDatePicker(
+          final picked = await showDatePicker(
             context: context,
-            initialDate: _selectedBirthday ?? DateTime(now.year - 18),
+            initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
             firstDate: DateTime(1900),
-            lastDate: DateTime(now.year, now.month, now.day),
+            lastDate: DateTime.now(),
           );
-          if (pickedDate != null) {
-            setState(() => _selectedBirthday = pickedDate);
+          if (picked != null) {
+            setState(() => _selectedBirthday = picked);
           }
         },
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-      TextEditingController controller,
-      String hint,
-      IconData icon, {
-        TextInputType type = TextInputType.text,
-      }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
-        ],
-      ),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: type,
-        validator: (value) => value!.isEmpty ? 'Please enter $hint' : null,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(16),
-        ),
       ),
     );
   }
@@ -325,10 +370,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             ),
             child: DropdownButtonFormField<String>(
               value: value,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: '',
-              ),
+              decoration: const InputDecoration(border: InputBorder.none, hintText: ''),
               hint: Text(label),
               isExpanded: true,
               icon: const Icon(Icons.arrow_drop_down),

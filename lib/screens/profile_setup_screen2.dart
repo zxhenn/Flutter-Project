@@ -54,91 +54,84 @@ class _ProfileSetupScreen2State extends State<ProfileSetupScreen2> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          SizedBox.expand(
-            child: Image.asset('assets/images/bg.png', fit: BoxFit.cover),
-          ),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Almost done!',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Choose your main area of focus to personalize your experience.',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 30),
-
-                    Wrap(
-                      spacing: 20,
-                      runSpacing: 20,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        focusButton('Workout', Icons.fitness_center),
-                        focusButton('Running', Icons.directions_run),
-                        focusButton('Medicine', Icons.medical_services),
-                        focusButton('Therapy', Icons.healing),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : onProfileSetupComplete,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[700],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: _isSaving
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text('Finish Setup ✅', style: TextStyle(fontSize: 16)),
-                      ),
-                    ),
-                  ],
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 24),
+              Text(
+                'WHAT DO YOU WANT TO FOCUS ON?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800],
+                  letterSpacing: 1.2,
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
+
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                alignment: WrapAlignment.center,
+                children: [
+                  focusButton('Workout', Icons.fitness_center),
+                  focusButton('Running', Icons.directions_run),
+                  focusButton('Medicine', Icons.medical_services),
+                  focusButton('Therapy', Icons.healing),
+                  focusButton('Yoga', Icons.self_improvement),
+                  focusButton('Other', Icons.more_horiz),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : onProfileSetupComplete,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isSaving
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Save', style: TextStyle(fontSize: 18, color: Colors.white)),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget focusButton(String label, IconData icon) {
+    final isSelected = selectedFocus == label;
+
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedFocus = label;
-        });
-      },
-      child: Container(
-        width: 100,
-        height: 100,
+      onTap: () => setState(() => selectedFocus = label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: MediaQuery.of(context).size.width * 0.4,
+        padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: selectedFocus == label ? Colors.blue[100] : Colors.teal[50],
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? Colors.blue[100] : Colors.teal[50],
+          borderRadius: BorderRadius.circular(16),
           boxShadow: const [
-            BoxShadow(color: Colors.grey, blurRadius: 4, offset: Offset(2, 4)),
+            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(2, 4)),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.blue[800]),
+            Icon(icon, size: 36, color: Colors.blue[800]),
             const SizedBox(height: 8),
-            Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
       ),

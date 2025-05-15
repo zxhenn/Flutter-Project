@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+// import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -78,11 +78,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut(); // Force account picker
-      final googleUser = await googleSignIn.signIn();
+
+      await googleSignIn.signOut(); // Forces account picker
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return;
 
-      final googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -93,26 +95,21 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = userCredential.user;
       if (user == null) return;
 
-      // 🔥 Create empty profile if not exist
-      final profileDoc = FirebaseFirestore.instance.collection('Profiles').doc(user.uid);
-      final snapshot = await profileDoc.get();
+      final profileRef = FirebaseFirestore.instance.collection('Profiles').doc(user.uid);
+      final profileDoc = await profileRef.get();
 
-      if (!snapshot.exists) {
-        await profileDoc.set({
-          'Name': '',
-          'Age': 0,
-          'Height': '',
-          'Weight': '',
-          'FocusArea': '',
+      // ✅ Create minimal profile ONLY if not exists — name will be set during setup
+      if (!profileDoc.exists) {
+        await profileRef.set({
           'Email': user.email,
-          'Uid': user.uid,
+          'provider': 'google.com',
+          'receiveRequests': true,
         });
       }
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/auth'); // ✅ Route through AuthWrapper
+      Navigator.pushReplacementNamed(context, '/auth'); // triggers ProfileSetup if not complete
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Google login error: $e')),
       );
@@ -124,30 +121,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
   // Facebook Sign-In
-  Future<void> signInWithFacebook() async {
-    try {
-      final result = await FacebookAuth.instance.login();
-
-      if (result.status == LoginStatus.success) {
-        final accessToken = result.accessToken!.token;
-        final credential = FacebookAuthProvider.credential(accessToken);
-        await FirebaseAuth.instance.signInWithCredential(credential);
-
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Facebook login failed')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Facebook login error: $e')),
-      );
-    }
-  }
 
 
   @override
@@ -290,13 +263,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        socialIcon('assets/images/facebook_login.png', signInWithFacebook),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
+
+
 
                     Center(
                       child: TextButton(
@@ -307,6 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Don\'t have an account? Sign Up',
                           style: TextStyle(color: Colors.grey),
                         ),
+
                       ),
                     ),
                   ],

@@ -14,6 +14,14 @@ class NotificationService {
           ledColor: const Color(0xFF2196F3),
           importance: NotificationImportance.High,
         ),
+        NotificationChannel(
+          channelKey: 'social_channel',
+          channelName: 'Friend & Social Notifications',
+          channelDescription: 'For friend requests and social updates',
+          defaultColor: const Color(0xFF4CAF50),
+          ledColor: const Color(0xFF4CAF50),
+          importance: NotificationImportance.High,
+        ),
       ],
       debug: true,
     );
@@ -26,6 +34,18 @@ class NotificationService {
         channelKey: 'habit_timer_channel',
         title: title,
         body: body,
+        notificationLayout: NotificationLayout.Default,
+      ),
+    );
+  }
+
+  static Future<void> notifyFriendRequest(String fromName) async {
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: createUniqueId(),
+        channelKey: 'social_channel',
+        title: 'New Friend Request',
+        body: '$fromName sent you a friend request!',
         notificationLayout: NotificationLayout.Default,
       ),
     );
@@ -65,4 +85,15 @@ class NotificationService {
   static int createUniqueId() {
     return DateTime.now().millisecondsSinceEpoch.remainder(100000);
   }
+}
+void showFriendRequestNotification() {
+  AwesomeNotifications().createNotification(
+    content: NotificationContent(
+      id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      channelKey: 'friend_channel',
+      title: 'New Friend Request!',
+      body: 'Someone just sent you a friend request.',
+      notificationLayout: NotificationLayout.Default,
+    ),
+  );
 }

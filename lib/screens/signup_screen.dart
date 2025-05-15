@@ -11,7 +11,7 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  // final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -44,8 +44,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
-          .set({
-        'name': _nameController.text.trim(),
+          .set({  
+        // 'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -114,22 +114,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      // Name Field
-                      _buildTextField(
-                        controller: _nameController,
-                        hintText: 'Full Name',
-                        icon: Icons.person,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your name';
-                          }
-                          if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value)) {
-                            return 'Name can only contain letters and spaces';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
+                      // // Name Field
+                      // _buildTextField(
+                      //   controller: _nameController,
+                      //   hintText: 'Full Name',
+                      //   icon: Icons.person,
+                      //   validator: (value) {
+                      //     if (value == null || value.isEmpty) {
+                      //       return 'Please enter your name';
+                      //     }
+                      //     if (!RegExp(r"^[a-zA-Z\s]+$").hasMatch(value)) {
+                      //       return 'Name can only contain letters and spaces';
+                      //     }
+                      //     return null;
+                      //   },
+                      // ),
+                      // const SizedBox(height: 20),
                       // Email Field
                       _buildTextField(
                         controller: _emailController,
@@ -225,51 +225,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       const SizedBox(height: 20),
 
 // ✨ Here is the NEW "or" Divider
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Divider(
-                              thickness: 1,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'or',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                          const Expanded(
-                            child: Divider(
-                              thickness: 1,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-// Google Sign In Button
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // Your working google sign in method here
-                        },
-                        icon: Image.asset('assets/google.png', height: 24),
-                        label: const Text('Sign in with Google'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 3,
-                        ),
-                      ),
+//                       Row(
+//                         children: [
+//                           const Expanded(
+//                             child: Divider(
+//                               thickness: 1,
+//                               color: Colors.grey,
+//                             ),
+//                           ),
+//                           const Padding(
+//                             padding: EdgeInsets.symmetric(horizontal: 12),
+//                             child: Text(
+//                               'or',
+//                               style: TextStyle(
+//                                 fontSize: 14,
+//                                 color: Colors.grey,
+//                               ),
+//                             ),
+//                           ),
+//                           const Expanded(
+//                             child: Divider(
+//                               thickness: 1,
+//                               color: Colors.grey,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                       const SizedBox(height: 20),
+//
+// // Google Sign In Button
+//                       ElevatedButton.icon(
+//                         onPressed: () {
+//                           // Your working google sign in method here
+//                         },
+//                         icon: Image.asset('assets/google.png', height: 24),
+//                         label: const Text('Sign in with Google'),
+//                         style: ElevatedButton.styleFrom(
+//                           backgroundColor: Colors.white,
+//                           foregroundColor: Colors.black87,
+//                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+//                           shape: RoundedRectangleBorder(
+//                             borderRadius: BorderRadius.circular(12),
+//                           ),
+//                           elevation: 3,
+//                         ),
+//                       ),
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: () {

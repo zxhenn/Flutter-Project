@@ -31,15 +31,14 @@ void main() async {
     null,
     [
       NotificationChannel(
-        channelKey: 'habit_timer_channel',
-        channelName: 'Habit Timer Notifications',
-        channelDescription: 'Notifications for habit tracking',
-        defaultColor: const Color(0xFF2196F3),
-        importance: NotificationImportance.High,
+        channelKey: 'social_channel', // ✅ this must match
+        channelName: 'Social Alerts',
+        channelDescription: 'Friend requests and social activity',
+        defaultColor: Colors.blue,
         ledColor: Colors.white,
+        importance: NotificationImportance.High,
       ),
     ],
-    debug: true,
   );
 
   if (!await AwesomeNotifications().isNotificationAllowed()) {
