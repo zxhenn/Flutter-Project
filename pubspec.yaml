@@ -77,7 +77,12 @@ flutter:
     - assets/images/instagram_login.png
     - assets/images/phone_number_login.png
     - assets/animations/running.json
-
+    - assets/badges/grandmaster.png
+    - assets/badges/diamond.png
+    - assets/badges/emerald.png
+    - assets/badges/gold.png
+    - assets/badges/silver.png
+    - assets/badges/bronze.png
   fonts:
     - family: Montserrat
       fonts:

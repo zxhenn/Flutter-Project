@@ -1,123 +1,70 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class PointingSystem {
-  static const int pointsPerUnit = 1;
-
-  static final List<String> defaultCategories = [
-    "Cardiovascular Fitness",
-    "Strength Training",
-    "Flexibility and Mobility",
-    "Sports and Recreational Activities",
-    "Lifestyle Physical Activity",
-    "Fitness/Medication for Specific Populations",
-    "Custom"
-  ];
-
-  /// Returns calculated points based on completed days and total progress value (e.g. reps, minutes, km)
-  static int calculatePoints(int totalProgress) {
-    return totalProgress * pointsPerUnit;
-  }
-
-  /// Calculates consistency ratio (0.0–1.0) for visual indicators
-  static double calculateConsistencyRatio(int completedDays, int daysSinceStart) {
-    if (daysSinceStart == 0) return 0.0;
-    return (completedDays / daysSinceStart).clamp(0.0, 1.0);
-  }
-
-  /// Permanently store final points after habit is marked completed
-  static Future<void> storeFinalPointsIfCompleted({
-    required String category,
-    required int daysCompleted,
-    required int durationDays,
-    required int totalProgressValue,
-    required String habitId,
-  }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
+  static Future<void> updateHabitProgress(String userId, String habitId) async {
     final habitRef = FirebaseFirestore.instance
         .collection('users')
-        .doc(user.uid)
+        .doc(userId)
         .collection('habits')
         .doc(habitId);
 
-    final habitSnap = await habitRef.get();
-    final habitData = habitSnap.data() ?? {};
+    final doc = await habitRef.get();
+    if (!doc.exists) return;
 
-    if (daysCompleted == durationDays && !(habitData['pointsClaimed'] == true)) {
-      final int finalPoints = calculatePoints(totalProgressValue);
+    final data = doc.data()!;
+    final int daysCompleted = data['daysCompleted'] ?? 0;
+    final int daysLogged = data['daysLogged'] ?? 0;
+    final int durationDays = data['durationDays'] ?? 1;
+    final Timestamp createdAt = data['createdAt'];
+    final int daysPassed = DateTime.now().difference(createdAt.toDate()).inDays + 1;
 
-      final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      final userSnap = await userDocRef.get();
-      final Map<String, dynamic> userData = userSnap.data() ?? {};
-      final dynamic raw = userData['categoryPoints'];
-      final Map<String, dynamic> categoryPoints =
-      raw is Map<String, dynamic> ? Map<String, dynamic>.from(raw) : {};
+    final double overallProgressRatio = daysCompleted / durationDays;
+    final double consistencyRatio = daysLogged / daysPassed;
 
-      for (var cat in defaultCategories) {
-        categoryPoints.putIfAbsent(cat, () => 0);
-      }
+    final String type = data['type'] ?? '';
+    int points = _getPointsByType(type);
 
-      categoryPoints[category] = (categoryPoints[category] ?? 0) + finalPoints;
-
-      await userDocRef.set({'categoryPoints': categoryPoints}, SetOptions(merge: true));
-      await habitRef.update({
-        'pointsClaimed': true,
-        'finalPoints': finalPoints
-      });
-    }
+    await habitRef.update({
+      'daysPassed': daysPassed,
+      'overallProgressRatio': overallProgressRatio,
+      'consistencyRatio': consistencyRatio,
+      'overallProgressStatus': overallProgressRatio >= 1.0 ? 'Completed' : 'Ongoing',
+      '${_getCategoryPointsField(type)}': points,
+    });
   }
 
-  /// Fetches categoryPoints for the current user
-  static Future<Map<String, int>> fetchUserCategoryPoints() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return {};
-
-    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    final data = doc.data();
-    if (data == null || !data.containsKey('categoryPoints')) {
-      return {for (var cat in defaultCategories) cat: 0};
-    }
-
-    final Map<String, dynamic> raw = data['categoryPoints'];
-    return {
-      for (var cat in defaultCategories)
-        cat: (raw[cat] ?? 0) is int ? raw[cat] : (raw[cat] as num).toInt()
+  static int _getPointsByType(String type) {
+    final typePoints = {
+      'Running': 10,
+      'Yoga': 5,
+      'Weightlifting': 8,
+      // Add other mappings here
     };
+    return typePoints[type] ?? 3;
   }
 
-  /// Sums total points across all categories
-  static Future<int> getTotalPointsAcrossAllCategories() async {
-    final categoryPoints = await fetchUserCategoryPoints();
+  static String _getCategoryPointsField(String type) {
+    // You can expand this logic for other categories
+    if (type == 'Running') return 'cardioPoints';
+    if (type == 'Weightlifting') return 'strengthPoints';
+    return 'miscPoints';
+  }
+  static int calculateTotalPoints(List<Map<String, dynamic>> habits) {
+
     int total = 0;
-    for (var val in categoryPoints.values) {
-      total += val;
+    for (var habit in habits) {
+      total += (habit['points'] as num?)?.toInt() ?? 0;
     }
     return total;
   }
 
-  /// Initializes all category points to 0 for a new user if not set
-  static Future<void> initializeCategoryPoints() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-    final docSnap = await docRef.get();
-    final data = docSnap.data() ?? {};
-
-    final current = Map<String, dynamic>.from(data['categoryPoints'] ?? {});
-    bool updated = false;
-
-    for (var cat in defaultCategories) {
-      if (!current.containsKey(cat)) {
-        current[cat] = 0;
-        updated = true;
-      }
+  Map<String, int> calculateCategoryPoints(List<Map<String, dynamic>> habits) {
+    Map<String, int> categoryMap = {};
+    for (var habit in habits) {
+      final category = habit['category'] ?? 'Other';
+      final points = (habit['points'] as num?)?.toInt() ?? 0;
+      categoryMap[category] = (categoryMap[category] ?? 0) + points;
     }
-
-    if (updated) {
-      await docRef.set({'categoryPoints': current}, SetOptions(merge: true));
-    }
+    return categoryMap;
   }
 }

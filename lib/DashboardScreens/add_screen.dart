@@ -33,12 +33,12 @@ class _AddScreenState extends State<AddScreen> {
 
   final Map<String, List<String>> baseUnits = {
     'Cardiovascular Fitness': ['Minutes', 'Distance (km)'],
-    'Strength Training': ['Reps', 'Minutes', 'Sessions'],
+    'Strength Training': [ 'Minutes', 'Sessions'],
     'Flexibility and Mobility': ['Minutes', 'Sessions'],
     'Sports and Recreational Activities': ['Minutes', 'Sessions'],
     'Lifestyle Physical Activity': ['Minutes', 'Sessions'],
     'Fitness/Medication for Specific Populations': ['Minutes', 'Sessions'],
-    'Custom': ['Reps', 'Minutes', 'Distance (km)', 'Sessions'],
+    'Custom': ['Minutes', 'Distance (km)', 'Sessions'],
   };
 
   final List<String> frequencies = ['Daily', 'Weekly', 'Monthly'];

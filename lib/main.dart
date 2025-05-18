@@ -18,11 +18,12 @@ import 'DashboardScreens/friends_screen.dart';
 import 'DashboardScreens/add_screen.dart';
 import 'Settings/EditProfileScreen.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import '/addition/awesome_notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
+  await NotificationService.initialize(); // ✅ Add this
   // Initialize Timezone (only needed if you use scheduled notifications)
   tz.initializeTimeZones();
 

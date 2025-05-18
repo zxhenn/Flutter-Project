@@ -137,13 +137,8 @@ class SettingsPage extends StatelessWidget {
                         : null,
                   ),
                   _settingsButton(
-                    icon: Icons.notifications,
-                    label: 'Push Notification',
-                    onTap: () {},
-                  ),
-                  _settingsButton(
-                    icon: Icons.volume_up,
-                    label: 'Sounds',
+                    icon: Icons.newspaper,
+                    label: 'Analysis',
                     onTap: () {},
                   ),
                   _settingsButton(

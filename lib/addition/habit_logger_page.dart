@@ -1,9 +1,12 @@
+// habit_logger_page.dart (updated to show total time for session)
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:lottie/lottie.dart';
-import 'dart:async';
+import 'minutes_timer_page.dart';
+import 'session_timer_page.dart';
+import 'gps_running_tracker.dart';
+import 'awesome_notifications.dart';
+
 
 class HabitLoggerPage extends StatefulWidget {
   final String habitId;
@@ -20,62 +23,190 @@ class HabitLoggerPage extends StatefulWidget {
 }
 
 class _HabitLoggerPageState extends State<HabitLoggerPage> {
-  late double todayProgress;
-  late int todayExcess;
-  late double targetMin;
-  late double targetMax;
-  late String type;
+  late dynamic todayProgress;
+  late dynamic targetMin;
+  late dynamic targetMax;
+  late dynamic habitData;
   late String unit;
   bool isComplete = false;
+  int? sessionDuration; // for session time display
 
   @override
   void initState() {
     super.initState();
-    todayProgress = (widget.habitData['todayProgress'] ?? 0).toDouble();
-    todayExcess = widget.habitData['todayExcess'] ?? 0;
-    targetMin = (widget.habitData['targetMin'] ?? 1).toDouble();
-    targetMax = (widget.habitData['targetMax'] ?? 1).toDouble();
-    type = widget.habitData['type'] ?? 'Habit';
-    unit = widget.habitData['unit'] ?? 'units';
-    isComplete = todayProgress >= targetMin;
+    todayProgress = widget.habitData['todayProgress'] ?? 0;
+    targetMin = widget.habitData['targetMin'] ?? 0;
+    targetMax = widget.habitData['targetMax'] ?? 0;
+    unit = widget.habitData['unit'] ?? '';
+    isComplete = widget.habitData['isComplete'] ?? false;
+
+
+    _resetProgressIfNewDay().then((_) {
+      setState(() {
+        todayProgress = widget.habitData['todayProgress'] ?? 0;
+        targetMin = widget.habitData['targetMin'] ?? 0;
+        targetMax = widget.habitData['targetMax'] ?? 0;
+        unit = widget.habitData['unit'] ?? '';
+        isComplete = widget.habitData['isComplete'] ?? false;
+      });
+    });
+
   }
 
-  Future<void> _incrementProgress() async {
+
+  Future<void> _resetProgressIfNewDay() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    setState(() {
-      if (todayProgress < targetMax) {
-        todayProgress += 1;
-      } else {
-        todayExcess += 1;
-      }
-      isComplete = todayProgress >= targetMin;
-    });
-
-    await FirebaseFirestore.instance
+    final habitRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('habits')
-        .doc(widget.habitId)
-        .update({
-      'todayProgress': unit == 'Sessions' ? todayProgress.toInt() : todayProgress,
-      'todayExcess': todayExcess,
+        .doc(widget.habitId);
+
+    final habitSnap = await habitRef.get();
+    final data = habitSnap.data();
+    if (data == null) return;
+
+    final Timestamp? lastUpdated = data['lastUpdated'];
+    final int daysLogged = data['daysLogged'] ?? 0;
+    final int durationDays = data['durationDays'] ?? 30;
+    final DateTime createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final DateTime now = DateTime.now();
+
+    final bool isNewDay = lastUpdated == null ||
+        lastUpdated.toDate().year != now.year ||
+        lastUpdated.toDate().month != now.month ||
+        lastUpdated.toDate().day != now.day;
+
+    if (isNewDay && daysLogged < durationDays) {
+      final int daysPassed = now.difference(createdAt).inDays + 1;
+
+      await habitRef.update({
+        'todayProgress': 0,
+        'loggedToday': false,
+        'lastUpdated': Timestamp.fromDate(now),
+        'daysPassed': daysPassed,
+      });
+
+      setState(() {
+        todayProgress = 0;
+        isComplete = false;
+      });
+    }
+  }
+
+
+
+  Future<void> _updateProgress(int value) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    // Reference this user's habit document
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('habits')
+        .doc(widget.habitId);
+
+    final habitSnap = await docRef.get();
+    final habitData = habitSnap.data() ?? {};
+
+    // Fetch essential habit data
+    int currentLoggedDays = habitData['daysLogged'] ?? 0;
+    Timestamp createdAt = habitData['createdAt'] ?? Timestamp.now();
+    int durationDays = habitData['durationDays'] ?? 30;
+    String category = habitData['category'] ?? 'Custom';
+
+    // 🔢 Compute how many days have passed since creation
+    final int daysPassed = habitData['daysPassed'] ?? 1;
+
+
+    // 🧠 Calculate adjusted thresholds if unit == Minutes
+    final int targetMinAdjusted = unit == 'Minutes' ? targetMin * 60 : targetMin;
+    final int targetMaxAdjusted = unit == 'Minutes' ? targetMax * 60 : targetMax;
+
+    // 🧮 Detect transitions: previously incomplete → now completed
+    final int previousProgress = habitData['todayProgress'] ?? 0;
+    final bool previouslyCompletedMin = previousProgress >= targetMinAdjusted;
+    final bool previouslyCompletedMax = previousProgress >= targetMaxAdjusted;
+    final bool nowCompletedMin = value >= targetMinAdjusted;
+    final bool nowCompletedMax = value >= targetMaxAdjusted;
+// Only mark as loggedToday if max target is reached and not already logged
+    if (nowCompletedMax && !(habitData['loggedToday'] ?? false)) {
+      await docRef.update({
+        'loggedToday': true,
+        'lastLogDate': Timestamp.now(),
+      });
+    }
+
+    // 📈 Increment daysLogged ONCE per newly completed min target
+    int updatedDaysLogged = currentLoggedDays;
+    if (!previouslyCompletedMin && nowCompletedMin) {
+      updatedDaysLogged += 1;
+      await docRef.update({
+        'loggedToday': true,
+        'lastLogDate': Timestamp.now(),
+      });
+    }
+
+    // ✅ Pre-calculate these and store for dashboard
+    final double consistencyRatio = daysPassed > 0 ? updatedDaysLogged / daysPassed : 0;
+    final double overallProgressRatio = durationDays > 0 ? updatedDaysLogged / durationDays : 0;
+
+    // 🔐 Update Firestore
+    await docRef.update({
+      'todayProgress': value,
+      'daysPassed': daysPassed,
+      'daysLogged': updatedDaysLogged,
+      'consistencyRatio': consistencyRatio,
+      'overallProgressRatio': overallProgressRatio,
     });
+
+    // 🎯 Update UI locally
+    setState(() {
+      todayProgress = value;
+      isComplete = nowCompletedMin;
+    });
+
+    // 🏅 Award points
+    int pointsEarned = 0;
+    if (!previouslyCompletedMin && nowCompletedMin) pointsEarned += 5;
+    if (!previouslyCompletedMax && nowCompletedMax) pointsEarned += 5;
+
+    if (pointsEarned > 0) {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDoc = await userRef.get();
+      final Map<String, dynamic> points = userDoc.data()?['categoryPoints'] ?? {};
+      points[category] = (points[category] ?? 0) + pointsEarned;
+
+      await userRef.set({'categoryPoints': points}, SetOptions(merge: true));
+
+      await NotificationService.showInstantNotification(
+        'Habit Progress 🎯',
+        'You earned +$pointsEarned points in $category!\n'
+            '${nowCompletedMax ? '✅ Max target hit!' : '👍 Min target reached!'}',
+
+      );
+    }
   }
 
-  bool isGPSAllowed() {
-    final t = type.toLowerCase();
-    return (t.contains('run') || t.contains('walk')) &&
-        (unit == 'Minutes' || unit == 'Distance (km)');
-  }
 
-  bool isManualTapAllowed() {
-    return unit != 'Distance (km)';
+
+
+
+  String _formatDuration(int seconds) {
+    final duration = Duration(seconds: seconds);
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final secs = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$secs';
   }
 
   @override
   Widget build(BuildContext context) {
+    final type = widget.habitData['type'] ?? 'Habit';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Track Progress'),
@@ -96,251 +227,99 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             const SizedBox(height: 12),
-            Text('${todayProgress.toStringAsFixed(2)} / $targetMax $unit'),
-            if (todayExcess > 0)
-              Text('+$todayExcess excess', style: const TextStyle(color: Colors.orange)),
-            const SizedBox(height: 32),
+            Text(
+              unit == 'Minutes'
+                  ? _formatDuration(todayProgress) + ' / ' + _formatDuration(targetMax)
+                  : '$todayProgress / $targetMax $unit',
+              style: const TextStyle(fontSize: 18),
+            ),
 
-            if (isManualTapAllowed())
-              ElevatedButton(
-                onPressed: _incrementProgress,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-                  backgroundColor: Colors.blue[700],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            if (sessionDuration != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Last session time: ${_formatDuration(sessionDuration!)}',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
-                child: const Text('+1', style: TextStyle(fontSize: 24, color: Colors.white)),
               ),
 
-            if (isGPSAllowed()) ...[
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
+            const SizedBox(height: 24),
+
+            if (unit == 'Minutes')
+              ElevatedButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => GPSRunningTrackerPage(
+                      builder: (_) => MinutesTimerPage(
                         habitId: widget.habitId,
                         targetMin: targetMin,
                         targetMax: targetMax,
-                        unit: unit,
+
                       ),
                     ),
                   );
+                  if (result != null) _updateProgress(result);
                 },
-                icon: const Icon(Icons.location_on, color: Colors.white),
-                label: const Text('Track Automatically', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
+                child: const Text('Track Minutes'),
+              )
+            else if (unit == 'Sessions')
+              ElevatedButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SessionTimerPage(
+                        habitId: widget.habitId,
+                        targetMin: targetMin,
+                        targetMax: targetMax,
 
-            const SizedBox(height: 16),
-            if (isComplete)
-              Text(
-                todayProgress >= targetMax
-                    ? '🎉 You reached your goal for today, take a rest!'
-                    : '👍 Minimum Reached',
-                style: TextStyle(
-                  color: todayProgress >= targetMax ? Colors.green : Colors.orange,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class GPSRunningTrackerPage extends StatefulWidget {
-  final String habitId;
-  final double targetMin;
-  final double targetMax;
-  final String unit;
-
-  const GPSRunningTrackerPage({
-    super.key,
-    required this.habitId,
-    required this.targetMin,
-    required this.targetMax,
-    required this.unit,
-  });
-
-  @override
-  State<GPSRunningTrackerPage> createState() => _GPSRunningTrackerPageState();
-}
-
-class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> with SingleTickerProviderStateMixin {
-  Stopwatch _stopwatch = Stopwatch();
-  Timer? _timer;
-  List<Position> _positions = [];
-  double _distance = 0.0;
-  double _currentSpeed = 0.0;
-  bool _tracking = false;
-
-  late AnimationController _lottieController;
-
-  @override
-  void initState() {
-    super.initState();
-    _lottieController = AnimationController(vsync: this);
-    _startTracking();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _lottieController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _startTracking() async {
-    final granted = await _checkPermissions();
-    if (!granted) return;
-
-    _positions.clear();
-    _distance = 0.0;
-    _stopwatch.reset();
-    _stopwatch.start();
-    _tracking = true;
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-
-    Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 5),
-    ).listen((Position position) {
-      setState(() {
-        _currentSpeed = position.speed * 3.6;
-        if (_positions.isNotEmpty) {
-          _distance += Geolocator.distanceBetween(
-            _positions.last.latitude,
-            _positions.last.longitude,
-            position.latitude,
-            position.longitude,
-          );
-        }
-        _positions.add(position);
-      });
-    });
-  }
-
-  Future<void> _stopTracking() async {
-    _stopwatch.stop();
-    _timer?.cancel();
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    double addValue = 0.0;
-    if (widget.unit == 'Minutes') {
-      addValue = _stopwatch.elapsed.inMinutes.toDouble();
-    } else if (widget.unit == 'Distance (km)') {
-      addValue = _distance / 1000;
-    }
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('habits')
-        .doc(widget.habitId)
-        .update({
-      'todayProgress': FieldValue.increment(addValue),
-    });
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Tracked +${addValue.toStringAsFixed(2)} ${widget.unit}')),
-    );
-    Navigator.pop(context);
-  }
-
-  Future<bool> _checkPermissions() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      permission = await Geolocator.requestPermission();
-    }
-    return permission == LocationPermission.whileInUse || permission == LocationPermission.always;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final km = _distance / 1000;
-    final isRunning = _currentSpeed > 1.0;
-    final progress = (widget.unit == 'Distance (km)')
-        ? (km / widget.targetMax).clamp(0.0, 1.0)
-        : (_stopwatch.elapsed.inMinutes / widget.targetMax).clamp(0.0, 1.0);
-    final milestone = (widget.targetMin / widget.targetMax).clamp(0.0, 1.0);
-
-    // animation logic
-    if (isRunning) {
-      _lottieController.repeat();
-    } else {
-      _lottieController.stop();
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Live Tracker')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 200,
-              child: Lottie.asset(
-                'assets/animations/running.json',
-                controller: _lottieController,
-                onLoaded: (composition) {
-                  _lottieController.duration = composition.duration;
-                  if (isRunning) {
-                    _lottieController.repeat();
-                  } else {
-                    _lottieController.stop();
+                      ),
+                    ),
+                  );
+                  if (result != null && result is Map) {
+                    if (result['sessionCount'] != null) _updateProgress(todayProgress + result['sessionCount']);
+                    if (result['duration'] != null) {
+                      setState(() => sessionDuration = result['duration']);
+                    }
                   }
                 },
+                child: const Text('Start Session'),
+              )
+            else if (unit == 'Distance (km)')
+                ElevatedButton(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => GPSRunningTrackerPage(
+                          habitId: widget.habitId,
+                          target: targetMax,
+                          unit: unit,
+                        ),
+                      ),
+                    );
+                    if (result != null) _updateProgress(result);
+                  },
+                  child: const Text('Track Now (GPS)'),
+                ),
+
+            const SizedBox(height: 24),
+            if (isComplete)
+              const Text(
+                '✅ You reached your target for today!',
+                style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
               ),
-            ),
-            Text(
-              widget.unit == 'Distance (km)'
-                  ? 'Distance: ${km.toStringAsFixed(2)} km'
-                  : 'Time: ${_stopwatch.elapsed.inMinutes} min',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Stack(
-              children: [
-                Container(height: 20, width: double.infinity, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
-                FractionallySizedBox(
-                  widthFactor: progress,
-                  child: Container(
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: progress >= milestone ? Colors.green : Colors.orange,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: MediaQuery.of(context).size.width * milestone - 1,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(width: 2, color: Colors.red),
-                ),
-              ],
-            ),
-            const SizedBox(height: 30),
-            Text('Speed: ${_currentSpeed.toStringAsFixed(1)} km/h'),
-            const SizedBox(height: 20),
-            if (!_tracking)
-              ElevatedButton(onPressed: _startTracking, child: const Text('Start Tracking')),
-            if (_tracking)
-              ElevatedButton(onPressed: _stopTracking, child: const Text('Stop & Save')),
           ],
+
         ),
+
       ),
+
     );
   }
+
+
 }
+
+

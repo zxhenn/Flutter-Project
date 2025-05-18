@@ -11,7 +11,7 @@ import '/addition/top_header.dart';
 import '/addition/bottom_navbar.dart';
 import 'friends_screen.dart';
 import '/Settings/settings_page.dart';
-import '/utils/pointing_system.dart';
+
 import '/addition/awesome_notifications.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -192,19 +192,19 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                     final double targetMax = (data['targetMax'] ?? 0).toDouble();
                     final double todayProgress = (data['todayProgress'] ?? 0).toDouble();
                     final int durationDays = data['durationDays'] ?? 1;
-                    final int daysCompleted = data['daysCompleted'] ?? 0;
+                    final int daysLogged = data['daysLogged'] ?? 0;
                     final String category = data['category'] ?? 'General';
 
-                    final bool isHabitDone = daysCompleted >= durationDays;
-                    final String progressLabel = isHabitDone ? 'Completed' : 'Ongoing';
+                    final bool isHabitDone = daysLogged >= durationDays;
+                    final double overallProgressRatio = data['overallProgressRatio'] ?? 0.0;
+                    final String overallProgressLabel = '${(overallProgressRatio * 100).toStringAsFixed(1)}%';
 
                     final int categoryScore = categoryPoints[category] ?? 0;
 
-                    final Timestamp? createdAt = data['createdAt'];
-                    final DateTime startDate = createdAt?.toDate() ?? DateTime.now();
-                    final int daysSinceStart = DateTime.now().difference(startDate).inDays + 1;
+                    final DateTime createdAt = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+                    final int daysPassed = data['daysPassed'] ?? 1;
                     final double consistencyRatio =
-                    PointingSystem.calculateConsistencyRatio(daysCompleted, daysSinceStart);
+                        data['consistencyRatio'] ?? 0.0;
 
                     if (_filter == 'Completed' && !isHabitDone) return const SizedBox.shrink();
                     if (_filter == 'Ongoing' && isHabitDone) return const SizedBox.shrink();
@@ -241,12 +241,48 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Header with delete button
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(getHabitIcon(type), size: 20, color: Colors.blue),
-                                const SizedBox(width: 8),
-                                Text('$type - $unit',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                Row(
+                                  children: [
+                                    Icon(getHabitIcon(type), size: 20, color: Colors.blue),
+                                    const SizedBox(width: 8),
+                                    Text('$type - $unit',
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Delete Habit'),
+                                        content: const Text('Are you sure you want to delete this habit?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            child: const Text('Delete'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(FirebaseAuth.instance.currentUser!.uid)
+                                          .collection('habits')
+                                          .doc(doc.id)
+                                          .delete();
+                                    }
+                                  },
+                                ),
                               ],
                             ),
                             const SizedBox(height: 4),
@@ -254,8 +290,8 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                                 style: const TextStyle(fontSize: 14, color: Colors.blue)),
                             Text('Minimum of $targetMin $unit'),
                             Text('Maximum of $targetMax $unit'),
-                            Text('Days Passed: $daysSinceStart'),
-                            Text('Days Logged: $daysCompleted / $durationDays'),
+                            Text('Days Passed: $daysPassed'),
+                            Text('Days Logged: $daysLogged / $durationDays'),
 
                             const SizedBox(height: 8),
                             const Text('Progress Today', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -271,12 +307,14 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                             Text('$todayProgress / $targetMax $unit'),
 
                             const SizedBox(height: 12),
-                            Text('Overall Progress: $progressLabel',
+                            Text('Overall Progress: $overallProgressLabel',
                                 style: TextStyle(color: isHabitDone ? Colors.green : Colors.orange)),
+
+
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: LinearProgressIndicator(
-                                value: (daysCompleted / durationDays).clamp(0.0, 1.0),
+                                value: (daysLogged / durationDays).clamp(0.0, 1.0),
                                 minHeight: 10,
                                 backgroundColor: Colors.grey[300],
                                 color: isHabitDone ? Colors.green : Colors.blue,
@@ -323,6 +361,7 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                     );
                   },
                 );
+
               },
             ),
           ),
