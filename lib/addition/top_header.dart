@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class TopHeader extends StatelessWidget {
-  const TopHeader({super.key});
+  final VoidCallback? onAddTap;
+  final VoidCallback? onProfileTap;
+  final VoidCallback? onNotificationTap;
+  const TopHeader({
+    super.key,
+    this.onAddTap,
+    this.onProfileTap,
+    this.onNotificationTap,
+  });
 
   @override
   Widget build(BuildContext context) {

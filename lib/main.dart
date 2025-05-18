@@ -19,7 +19,7 @@ import 'DashboardScreens/add_screen.dart';
 import 'Settings/EditProfileScreen.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import '/addition/awesome_notifications.dart';
-
+import '/DashboardScreens/challenge_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -81,6 +81,7 @@ class MyApp extends StatelessWidget {
         '/add_screen': (context) => const AddScreen(),
         '/terms': (context) => const TermsScreen(),
         '/EditProfileScreen':(context) => const EditProfileScreen(),
+        '/challenge_screen':(context) => const ChallengeScreen(),
       },
       navigatorObservers: [routeObserver],
     );

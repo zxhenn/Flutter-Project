@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '/utils/pointing_system.dart'; // Adjust import
+import '/addition/top_header.dart';
+
 
 class ChallengeScreen extends StatefulWidget {
   const ChallengeScreen({super.key});
@@ -10,7 +13,7 @@ class ChallengeScreen extends StatefulWidget {
 }
 
 class _ChallengeScreenState extends State<ChallengeScreen> {
-  final user = FirebaseAuth.instance.currentUser;
+  final user = FirebaseAuth.instance.currentUser!;
   List<Map<String, dynamic>> friends = [];
   bool loading = true;
 
@@ -23,25 +26,31 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
   Future<void> fetchFriends() async {
     final friendsSnap = await FirebaseFirestore.instance
         .collection('users')
-        .doc(user!.uid)
+        .doc(user.uid)
         .collection('friends')
         .get();
 
     List<Map<String, dynamic>> temp = [];
 
     for (var doc in friendsSnap.docs) {
+      final friendId = doc.id;
+
       final profileSnap = await FirebaseFirestore.instance
           .collection('Profiles')
-          .doc(doc.id)
+          .doc(friendId)
           .get();
 
-      if (profileSnap.exists) {
-        temp.add({
-          'uid': doc.id,
-          'name': profileSnap.data()?['name'] ?? 'Unknown',
+      final profileData = profileSnap.data();
 
-        });
-      }
+      final points = await PointingSystem.getTotalPoints(friendId);
+      final rank = PointingSystem.getRankFromPoints(points);
+
+      temp.add({
+        'uid': friendId,
+        'name': profileData?['name'] ?? 'Unknown',
+        'points': points,
+        'rank': rank,
+      });
     }
 
     setState(() {
@@ -50,233 +59,231 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
     });
   }
 
-  Future<Map<String, dynamic>?> fetchActiveChallenge(String friendId) async {
-    try {
-      final query = await FirebaseFirestore.instance
-          .collection('challenges')
-          .where('status', isEqualTo: 'accepted')
-          .where('senderId', whereIn: [user!.uid, friendId])
-          .where('receiverId', whereIn: [user!.uid, friendId])
-          .get()
-          .timeout(const Duration(seconds: 3)); // prevent forever wait
+  Future<Map<String, dynamic>?> getChallenge(String friendId) async {
+    final challengeSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('challenges')
+        .where('receiverId', isEqualTo: friendId)
+        .where('status', whereIn: ['accepted', 'pending'])
+        .get();
 
-      if (query.docs.isNotEmpty) {
-        return query.docs.first.data();
-      }
-    } catch (e) {
-      print("Failed to fetch challenge for $friendId: $e");
+    if (challengeSnap.docs.isEmpty) {
+      return null;
     }
 
-    return null;
+    return {
+      'id': challengeSnap.docs.first.id,
+      ...challengeSnap.docs.first.data(),
+    };
   }
 
-  Widget buildChallengeCard(Map<String, dynamic> challenge) {
-    final isSender = challenge['senderId'] == user!.uid;
-    final myName = isSender ? challenge['senderName'] : challenge['receiverName'];
-    final friendName = isSender ? challenge['receiverName'] : challenge['senderName'];
-    final myProgress = isSender ? challenge['senderProgress'] : challenge['receiverProgress'];
-    final friendProgress = isSender ? challenge['receiverProgress'] : challenge['senderProgress'];
-    final target = challenge['target'];
-    final type = challenge['challengeType'];
-
-    final icon = getChallengeIcon(type);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text("$myName VS $friendName", style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(icon, size: 28),
-              const SizedBox(width: 8),
-              Text('$type  $myProgress/$target'),
-            ],
-          ),
-          LinearProgressIndicator(value: myProgress / target),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(icon, size: 28),
-              const SizedBox(width: 8),
-              Text('$type  $friendProgress/$target'),
-            ],
-          ),
-          LinearProgressIndicator(value: friendProgress / target),
-        ],
-      ),
-    );
-  }
-
-  IconData getChallengeIcon(String type) {
-    switch (type) {
-      case 'Running':
-        return Icons.directions_run;
-      case 'Lifting':
-        return Icons.fitness_center;
-      case 'Yoga':
-        return Icons.self_improvement;
-      default:
-        return Icons.star;
-    }
-  }
-
-  void sendChallenge(String friendId, String friendName) async {
-    await FirebaseFirestore.instance.collection('challenges').add({
-      'senderId': user!.uid,
-      'receiverId': friendId,
-      'senderName': user!.displayName ?? 'You',
-      'receiverName': friendName,
-      'challengeType': 'Running', // change as needed
-      'target': 7,
-      'status': 'pending',
-      'senderProgress': 0,
-      'receiverProgress': 0,
-      'createdAt': Timestamp.now(),
+  void openAddScreenForChallenge(Map<String, dynamic> friend) {
+    // Navigate to add_screen.dart in challenge mode
+    Navigator.pushNamed(context, '/add', arguments: {
+      'challengeMode': true,
+      'friendId': friend['uid'],
+      'friendName': friend['name']
     });
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Challenge Sent')));
+  void acceptChallenge(String challengeId, String friendId) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('challenges')
+        .doc(challengeId)
+        .update({'status': 'accepted'});
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(friendId)
+        .collection('challenges')
+        .doc(challengeId)
+        .update({'status': 'accepted'});
+
+    setState(() {}); // Refresh UI
+  }
+
+  void declineChallenge(String challengeId, String friendId) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('challenges')
+        .doc(challengeId)
+        .update({'status': 'rejected'});
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(friendId)
+        .collection('challenges')
+        .doc(challengeId)
+        .update({'status': 'rejected'});
+
+    setState(() {}); // Refresh UI
   }
 
   Widget buildFriendCard(Map<String, dynamic> friend) {
-    Future<Map<String, dynamic>?> fetchPendingChallenge(String friendId) async {
-      final query = await FirebaseFirestore.instance
-          .collection('challenges')
-          .where('status', isEqualTo: 'pending')
-          .where('receiverId', isEqualTo: user!.uid)
-          .where('senderId', isEqualTo: friendId)
-          .limit(1)
-          .get();
-
-      if (query.docs.isNotEmpty) {
-        return {
-          'id': query.docs.first.id,
-          ...query.docs.first.data(),
-        };
-      }
-      return null;
-    }
-    FutureBuilder(
-      future: fetchPendingChallenge(friend['uid']),
-      builder: (context, pendingSnapshot) {
-        if (pendingSnapshot.connectionState != ConnectionState.done) {
-          return const CircularProgressIndicator();
-        }
-
-        final pending = pendingSnapshot.data;
-
-        if (pending != null) {
-          return Column(
-            children: [
-              const Text("Challenge Request"),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      FirebaseFirestore.instance
-                          .collection('challenges')
-                          .doc(pending['id'])
-                          .update({'status': 'accepted'});
-                    },
-                    child: const Text("Accept"),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      FirebaseFirestore.instance
-                          .collection('challenges')
-                          .doc(pending['id'])
-                          .update({'status': 'rejected'});
-                    },
-                    child: const Text("Decline"),
-                  ),
-                ],
-              )
-            ],
-          );
-        }
-
-        return const SizedBox.shrink(); // no pending, no accepted
-      },
-    );
-
-    return FutureBuilder(
-
-      future: fetchActiveChallenge(friend['uid']),
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: getChallenge(friend['uid']),
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
         final challenge = snapshot.data;
 
-
         return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.person, size: 30),
-                  const SizedBox(width: 10),
-                  Text(friend['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
+              Text(friend['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text("${friend['points']} pts • Rank: ${friend['rank']}"),
               const SizedBox(height: 8),
-              challenge != null
-                  ? buildChallengeCard(challenge)
-                  : Column(
-                children: [
-                  Row(
+              if (challenge == null)
+                GestureDetector(
+                  onTap: () => openAddScreenForChallenge(friend),
+                  child: Column(
                     children: const [
-                      Icon(Icons.fitness_center),
-                      SizedBox(width: 6),
-                      Text("No challenge yet"),
+                      Icon(Icons.sports_kabaddi, size: 30, color: Colors.red),
+                      Text("Challenge friend", style: TextStyle(color: Colors.red)),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => sendChallenge(friend['uid'], friend['name']),
-                    child: Column(
-                      children: const [
-                        Icon(Icons.sports_kabaddi, color: Colors.red, size: 32),
-                        Text("Challenge friend", style: TextStyle(color: Colors.red)),
+                )
+              else if (challenge['status'] == 'pending' && challenge['receiverId'] == user.uid)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("${friend['name']} challenged you!", style: const TextStyle(color: Colors.orange)),
+                    Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => acceptChallenge(challenge['id'], friend['uid']),
+                          child: const Text("Accept"),
+                        ),
+                        const SizedBox(width: 10),
+                        TextButton(
+                          onPressed: () => declineChallenge(challenge['id'], friend['uid']),
+                          child: const Text("Decline"),
+                        ),
                       ],
-                    ),
+                    )
+                  ],
+                )
+              else if (challenge['status'] == 'accepted')
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Challenge: ${challenge['challengeType']}"),
+                      Text("Target: ${challenge['target']}"),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/challengeLogger',
+                            arguments: {
+                              'challengeId': challenge['id'],
+                              'challengeData': challenge,
+                            },
+                          );
+                        },
+                        child: const Text("Track Challenge"),
+                      ),
+                    ],
                   )
-                ],
-              ),
+                else
+                  const Text("No challenge yet")
             ],
           ),
         );
       },
-
     );
-
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Challenge Friends")),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: friends.length,
-        itemBuilder: (context, index) => buildFriendCard(friends[index]),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                const TopHeader(), // your existing top header layout
+
+                const SizedBox(height: 8),
+                const Text(
+                  "Challenge Friends",
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const Divider(thickness: 1),
+
+                Expanded(
+                  child: loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : friends.isEmpty
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "🥺 You have no friends to challenge...",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Montserrat',
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 14,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/friends_screen',
+                              arguments: {'triggerAdd': true},
+                            );
+                          },
+                          child: const Text(
+                            "Add one now!",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                      : ListView.builder(
+                    itemCount: friends.length,
+                    itemBuilder: (context, index) =>
+                        buildFriendCard(friends[index]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
+
+
 }

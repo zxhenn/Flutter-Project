@@ -67,4 +67,36 @@ class PointingSystem {
     }
     return categoryMap;
   }
+
+  static Future<void> rewardHonorPoints(String uid, int amount) async {
+    final ref = FirebaseFirestore.instance.collection('Profiles').doc(uid);
+    await ref.set({'honorPoints': FieldValue.increment(amount)}, SetOptions(merge: true));
+  }
+  static Future<int> getTotalPoints(String uid) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('Profiles')
+        .doc(uid)
+        .get();
+
+    if (!doc.exists) return 0;
+
+    final data = doc.data() ?? {};
+    final cardio = (data['cardioPoints'] ?? 0) as int;
+    final strength = (data['strengthPoints'] ?? 0) as int;
+    final misc = (data['miscPoints'] ?? 0) as int;
+
+    return cardio + strength + misc;
+  }
+  static String getRankFromPoints(int points) {
+    if (points >= 700) return 'Grandmaster';
+    if (points >= 500) return 'Master';
+    if (points >= 350) return 'Diamond';
+    if (points >= 200) return 'Platinum';
+    if (points >= 100) return 'Gold';
+    if (points >= 50) return 'Silver';
+    return 'Bronze';
+  }
+
+
 }
+

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import '/addition/top_header.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -203,6 +203,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     }, SetOptions(merge: true));
   }
 
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -219,264 +220,279 @@ class _FriendsScreenState extends State<FriendsScreen> {
         .collection('friends');
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Friends'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: () => showAddFriendDialog(context),
+
+      backgroundColor: Colors.white,
+
+      floatingActionButton: SizedBox(
+        width: 70,   // ✅ Width of the button
+        height: 70,  // ✅ Height of the button
+        child: FloatingActionButton(
+          onPressed: () => showAddFriendDialog(context),
+          backgroundColor: Colors.blueAccent,
+          child: const Icon(
+            Icons.person_add,
+            color: Colors.white,
+            size: 36, // ✅ Bigger icon inside
           ),
-        ],
+        ),
       ),
-      body: Column(
-        children: [
-          SwitchListTile(
-            title: const Text('Receive Friend Requests?'),
-            value: receiveRequests,
-            onChanged: _toggleReceiveRequests,
-          ),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text('Friend Requests', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          StreamBuilder<QuerySnapshot>(
-            stream: requestRef.snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('No friend requests.'),
-                );
-              }
 
-              final requests = snapshot.data!.docs;
 
-              return SizedBox(
-                height: 180,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: requests.length,
-                  itemBuilder: (context, index) {
-                    final doc = requests[index];
-                    final fromUid = doc['fromUid'];
-                    final fromName = doc['fromName'] ?? 'Anonymous';
-                    final fromEmail = doc['fromEmail'] ?? '';
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                TopHeader(
+                  onAddTap: () => showAddFriendDialog(context),
+                  onProfileTap: () => Navigator.pushNamed(context, '/profile'),
+                  onNotificationTap: () => Navigator.pushNamed(context, '/notifications'),
+                ),
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Container(
-                        width: 200,
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(fromName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(fromEmail, style: const TextStyle(fontSize: 14)),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.check, color: Colors.green),
-                                    onPressed: () async {
-                                      try {
-                                        final current = FirebaseAuth.instance.currentUser;
-                                        if (current == null) return;
+                const SizedBox(height: 8),
+                const Text(
+                  "Friends",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Montserrat',
+                    color: Colors.black,
+                  ),
+                ),
+                const Divider(thickness: 1),
+                SwitchListTile(
+                  title: const Text('Receive Friend Requests?'),
+                  value: receiveRequests,
+                  onChanged: _toggleReceiveRequests,
+                ),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('Friend Requests', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 22)),
+                ),
+                StreamBuilder<QuerySnapshot>(
+                  stream: requestRef.snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text('No friend requests.'),
+                      );
+                    }
 
-                                        final currentUid = current.uid;
-                                        final fromUid = doc['fromUid'];
-                                        final fromName = doc['fromName'] ?? 'Anonymous';
-                                        final fromEmail = doc['fromEmail'] ?? '';
+                    final requests = snapshot.data!.docs;
 
-                                        // Add sender to current user's friends
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(currentUid)
-                                            .collection('friends')
-                                            .doc(fromUid)
-                                            .set({
-                                          'uid': fromUid,
-                                          'name': fromName,
-                                          'email': fromEmail,
-                                          'addedAt': FieldValue.serverTimestamp(),
-                                        });
+                    return SizedBox(
+                      height: 180,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: requests.length,
+                        itemBuilder: (context, index) {
+                          final doc = requests[index];
+                          final fromUid = doc['fromUid'];
+                          final fromName = doc['fromName'] ?? 'Anonymous';
+                          final fromEmail = doc['fromEmail'] ?? '';
 
-                                        // Add current user to sender’s friends
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(fromUid)
-                                            .collection('friends')
-                                            .doc(currentUid)
-                                            .set({
-                                          'uid': currentUid,
-                                          'name': current.displayName ?? 'You',
-                                          'email': current.email ?? '',
-                                          'addedAt': FieldValue.serverTimestamp(),
-                                        });
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Container(
+                              width: 200,
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(fromName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  Text(fromEmail, style: const TextStyle(fontSize: 14)),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
 
-                                        // Delete the request from your inbox
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(currentUid)
-                                            .collection('friend_requests')
-                                            .doc(fromUid)
-                                            .delete();
+                                      IconButton(
+                                        icon: const Icon(Icons.check, color: Colors.green),
+                                        onPressed: () async {
+                                          final current = FirebaseAuth.instance.currentUser;
+                                          if (current == null) return;
 
-                                        // Optional: delete the reverse request
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(fromUid)
-                                            .collection('friend_requests')
-                                            .doc(currentUid)
-                                            .get()
-                                            .then((snap) async {
-                                          if (snap.exists) {
-                                            await snap.reference.delete();
+                                          final currentUid = current.uid;
+
+                                          await FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(currentUid)
+                                              .collection('friends')
+                                              .doc(fromUid)
+                                              .set({
+                                            'uid': fromUid,
+                                            'name': fromName,
+                                            'email': fromEmail,
+                                            'addedAt': FieldValue.serverTimestamp(),
+                                          });
+
+                                          await FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(fromUid)
+                                              .collection('friends')
+                                              .doc(currentUid)
+                                              .set({
+                                            'uid': currentUid,
+                                            'name': current.displayName ?? 'You',
+                                            'email': current.email ?? '',
+                                            'addedAt': FieldValue.serverTimestamp(),
+                                          });
+
+                                          await FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(currentUid)
+                                              .collection('friend_requests')
+                                              .doc(fromUid)
+                                              .delete();
+
+                                          await FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(fromUid)
+                                              .collection('friend_requests')
+                                              .doc(currentUid)
+                                              .get()
+                                              .then((snap) async {
+                                            if (snap.exists) {
+                                              await snap.reference.delete();
+                                            }
+                                          });
+
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('You and $fromName are now friends!')),
+                                            );
                                           }
-                                        });
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.close, color: Colors.red),
+                                        onPressed: () async {
+                                          final current = FirebaseAuth.instance.currentUser;
+                                          if (current == null) return;
 
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('You and $fromName are now friends!')),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Error accepting friend request: $e')),
-                                        );
-                                      }
-                                    }
-                                ),
+                                          final requestRef = FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(current.uid)
+                                              .collection('friend_requests')
+                                              .doc(fromUid);
 
-                                IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.red),
-                                  onPressed: () async {
-                                    final current = FirebaseAuth.instance.currentUser;
-                                    if (current == null) return;
+                                          await requestRef.get().then((snap) async {
+                                            if (snap.exists) {
+                                              await snap.reference.delete();
+                                            }
+                                          });
 
-                                    final fromUid = doc['fromUid'];
-                                    final requestRef = FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(current.uid)
-                                        .collection('friend_requests')
-                                        .doc(fromUid);
-
-                                    await requestRef.get().then((snap) async {
-                                      if (snap.exists) {
-                                        await snap.reference.delete();
-                                      }
-                                    });
-
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Friend request removed.')),
-                                      );
-                                    }
-                                  },
-                                ),
-                              ],
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Friend request removed.')),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.person_add),
+                                        onPressed: () => showAddFriendDialog(context), // ← won't work here directly
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     );
                   },
                 ),
-              );
-            },
-          ),
-          const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(8),
-            child: Text("Your Friends", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: friendsRef.snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("You haven't added any friends yet."));
-                }
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text("Your Friends", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.blue)),
+                ),
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: friendsRef.snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text("You haven't added any friends yet."));
+                      }
 
-                final friends = snapshot.data!.docs;
-                return ListView.builder(
-                  itemCount: friends.length,
-                  itemBuilder: (context, index) {
-                    final data = friends[index].data() as Map<String, dynamic>;
-                    final friendId = data['uid'] ?? '';
-                    final friendName = data['name'] ?? 'Friend';
-                    final friendEmail = data['email'] ?? '';
+                      final friends = snapshot.data!.docs;
+                      return ListView.builder(
+                        itemCount: friends.length,
+                        itemBuilder: (context, index) {
+                          final data = friends[index].data() as Map<String, dynamic>;
+                          final friendId = data['uid'] ?? '';
+                          final friendName = data['name'] ?? 'Friend';
+                          final friendEmail = data['email'] ?? '';
 
-                    return ListTile(
-                      title: Text(friendName),
-                      subtitle: Text(friendEmail),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) async {
-                          if (value == 'unfriend') {
-                            try {
-                              final currentUser = FirebaseAuth.instance.currentUser;
-                              if (currentUser == null) throw 'Not logged in';
+                          return ListTile(
+                            title: Text(friendName),
+                            subtitle: Text(friendEmail),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) async {
+                                if (value == 'unfriend') {
+                                  try {
+                                    final currentUser = FirebaseAuth.instance.currentUser;
+                                    if (currentUser == null) throw 'Not logged in';
 
-                              final currentId = currentUser.uid;
-                              final friendId = data['uid'];
+                                    final currentId = currentUser.uid;
 
-                              if (friendId == null) throw 'Missing friendId';
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(currentId)
+                                        .collection('friends')
+                                        .doc(friendId)
+                                        .delete();
 
-                              await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(currentId)
-                                  .collection('friends')
-                                  .doc(friendId)
-                                  .delete();
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(friendId)
+                                        .collection('friends')
+                                        .doc(currentId)
+                                        .delete();
 
-                              await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(friendId)
-                                  .collection('friends')
-                                  .doc(currentId)
-                                  .delete();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('You unfriended ${data['name'] ?? 'them'}')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Unfriend failed: $e')),
+                                      );
+                                    }
+                                  }
+                                }
 
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('You unfriended ${data['name'] ?? 'them'}')),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Unfriend failed: $e')),
-                                );
-                              }
-                            }
-                          }
-
-
-
-
-                          if (value == 'view') {
-                            // 🔜 This will navigate to View Profile later
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('View Profile coming soon...')),
-                            );
-                          }
+                                if (value == 'view') {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('View Profile coming soon...')),
+                                  );
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(value: 'view', child: Text('View Profile')),
+                                const PopupMenuItem(value: 'unfriend', child: Text('Unfriend')),
+                              ],
+                            ),
+                          );
                         },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'view', child: Text('View Profile')),
-                          const PopupMenuItem(value: 'unfriend', child: Text('Unfriend')),
-                        ],
-                      ),
-                    );
-                  },
-                );
-
-              },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
+
 }
