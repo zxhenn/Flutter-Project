@@ -81,22 +81,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    await FirebaseFirestore.instance.collection('Profiles').doc(user.uid).update({
-      'Name': _nameController.text.trim(),
-      'Age': calculatedAge,
-      'Height': _selectedHeight ?? '',
-      'Weight': _selectedWeight ?? '',
-      'Gender': _selectedGender,
-      'Birthday': _selectedBirthday != null ? Timestamp.fromDate(_selectedBirthday!) : null,
-    });
+    // ✅ Save updated values to Firestore under /Profiles/{uid}
+    await FirebaseFirestore.instance
+        .collection('Profiles')
+        .doc(user.uid)
+        .set({
+      'Name': _nameController.text.trim(), // ✅ User name
+      'NameLower': _nameController.text.trim().toLowerCase(), // lowercase for searching
+      'Age': calculatedAge, // ✅ Calculated from birthday
+      'Height': _selectedHeight ?? '', // ✅ Height selection
+      'Weight': _selectedWeight ?? '', // ✅ Weight selection
+      'Gender': _selectedGender, // ✅ Gender selection
+      'Birthday': _selectedBirthday != null
+          ? Timestamp.fromDate(_selectedBirthday!)
+          : null, // ✅ Save as Firestore Timestamp
+    }, SetOptions(merge: true)); // ✅ Prevent overwriting other existing fields
 
+    // ✅ Show confirmation
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Profile updated successfully!')),
     );
+
+    // ✅ Navigate back to settings screen
     if (mounted) {
-      Navigator.pop(context); // Navigate back to settings
+      Navigator.pop(context);
     }
   }
+
 
   @override
   void initState() {
@@ -107,7 +118,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profile')),
+      appBar: AppBar(
+        title: const Text(
+          'Edit Profile',
+          style: TextStyle(fontFamily: 'Montserrat'),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Form(
@@ -116,13 +132,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 30),
-              const Text('Name'),
+
+              const Text(
+                'Name',
+                style: TextStyle(fontFamily: 'Montserrat'),
+              ),
               _buildTextField(_nameController, 'Full Name', Icons.person),
-              const Text('Birthday'),
+
+              const SizedBox(height: 20),
+              const Text(
+                'Birthday',
+                style: TextStyle(fontFamily: 'Montserrat'),
+              ),
               _buildBirthdayPicker(),
-              const Text('Age'),
+
+              const SizedBox(height: 20),
+              const Text(
+                'Age',
+                style: TextStyle(fontFamily: 'Montserrat'),
+              ),
               _buildAgeDisplay(),
-              const Text('Height'),
+
+              const SizedBox(height: 20),
+              const Text(
+                'Height',
+                style: TextStyle(fontFamily: 'Montserrat'),
+              ),
               _buildDropdownRow(
                 label: 'Height',
                 value: _selectedHeight,
@@ -137,7 +172,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   });
                 },
               ),
-              const Text('Weight'),
+
+              const SizedBox(height: 20),
+              const Text(
+                'Weight',
+                style: TextStyle(fontFamily: 'Montserrat'),
+              ),
               _buildDropdownRow(
                 label: 'Weight',
                 value: _selectedWeight,
@@ -152,7 +192,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   });
                 },
               ),
-              const Text('Gender'),
+
+              const SizedBox(height: 20),
+              const Text(
+                'Gender',
+                style: TextStyle(fontFamily: 'Montserrat'),
+              ),
               DropdownButtonFormField<String>(
                 value: _selectedGender,
                 decoration: InputDecoration(
@@ -161,23 +206,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 items: ['Male', 'Female', 'Other']
-                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                    .map((g) => DropdownMenuItem(
+                  value: g,
+                  child: Text(g, style: const TextStyle(fontFamily: 'Montserrat')),
+                ))
                     .toList(),
                 onChanged: (value) => setState(() => _selectedGender = value!),
               ),
-              const SizedBox(height: 20),
+
+              const SizedBox(height: 30),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _saveProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[700],
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: const Text(
                     'Save Changes',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Montserrat',
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

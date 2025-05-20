@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
-import '/utils/pointing_system.dart'; // update path accordingly
+import 'package:uuid/uuid.dart';
 
 class ChallengeLoggerPage extends StatefulWidget {
-  final String challengeId;
-  final Map<String, dynamic> habitData;
-  final Map<String, dynamic> challengeData;
+  final String friendId;
+  final String friendName;
 
   const ChallengeLoggerPage({
     super.key,
-    required this.challengeId,
-    required this.habitData,
-    required this.challengeData,
+    required this.friendId,
+    required this.friendName,
   });
 
   @override
@@ -21,114 +18,162 @@ class ChallengeLoggerPage extends StatefulWidget {
 }
 
 class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
-  final user = FirebaseAuth.instance.currentUser!;
-  late DocumentReference myHabitRef;
-  late String opponentId;
-  bool isComplete = false;
+  final _formKey = GlobalKey<FormState>();
+  String selectedType = 'Running';
+  int minTarget = 1;
+  int maxTarget = 5;
+  int duration = 7;
 
-  @override
-  void initState() {
-    super.initState();
-    myHabitRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('challengeHabits')
-        .doc(widget.challengeId);
+  final List<String> habitTypes = [
+    'Running',
+    'Yoga',
+    'Weightlifting',
+    'Meditation',
+    'Cycling',
+  ];
 
-    opponentId = widget.challengeData['senderId'] == user.uid
-        ? widget.challengeData['receiverId']
-        : widget.challengeData['senderId'];
-  }
+  bool loading = false;
 
-  Future<void> updateProgress() async {
-    final snap = await myHabitRef.get();
-    final data = snap.data() as Map<String, dynamic>?;
+  void submitChallenge() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    if (data == null) return;
+    setState(() => loading = true);
 
-    final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final lastTracked = data['lastTracked'] ?? '';
-    int daysLogged = data['daysLogged'] ?? 0;
-    int duration = widget.habitData['durationDays'] ?? 7;
+    final user = FirebaseAuth.instance.currentUser!;
+    final challengeId = const Uuid().v4();
 
-    if (lastTracked != today) {
-      daysLogged += 1;
+    final data = {
+      'id': challengeId,
+      'senderId': user.uid,
+      'receiverId': widget.friendId,
+      'senderName': user.displayName ?? 'You',
+      'receiverName': widget.friendName,
+      'habitType': selectedType,
+      'targetMin': minTarget,
+      'targetMax': maxTarget,
+      'durationDays': duration,
+      'status': 'pending',
+      'createdAt': Timestamp.now(),
+      'senderProgress': 0,
+      'receiverProgress': 0,
+    };
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('challenges')
+          .doc(challengeId)
+          .set(data);
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.friendId)
+          .collection('challenges')
+          .doc(challengeId)
+          .set(data);
+
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Challenge sent!")),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to send challenge: $e")),
+        );
+      }
     }
 
-    final createdAt = (data['createdAt'] as Timestamp).toDate();
-    final daysPassed = DateTime.now().difference(createdAt).inDays + 1;
-    final consistencyRatio = daysLogged / daysPassed;
-
-    await myHabitRef.update({
-      'todayProgress': FieldValue.increment(1),
-      'daysLogged': daysLogged,
-      'lastTracked': today,
-      'consistencyRatio': consistencyRatio,
-    });
-
-    // Check if challenge is over
-    if (daysPassed >= duration) {
-      await checkWinnerAndReward();
-    }
-  }
-
-  Future<void> checkWinnerAndReward() async {
-    final mySnap = await myHabitRef.get();
-    final opponentRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(opponentId)
-        .collection('challengeHabits')
-        .doc(widget.challengeId);
-
-    final opponentSnap = await opponentRef.get();
-
-    if (!mySnap.exists || !opponentSnap.exists) return;
-
-    final myRatio = (mySnap['consistencyRatio'] ?? 0).toDouble();
-    final opponentRatio = (opponentSnap['consistencyRatio'] ?? 0).toDouble();
-
-    if (myRatio > opponentRatio) {
-      await PointingSystem.rewardHonorPoints(user.uid, 10); // winner reward
-    } else if (opponentRatio > myRatio) {
-      // no action, loser
-    } else {
-      // draw — optional logic
-    }
-
-    setState(() {
-      isComplete = true;
-    });
-  }
-
-  void handleTrack() async {
-    await updateProgress();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Progress tracked!")),
-    );
+    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isComplete) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Challenge Complete")),
-        body: const Center(child: Text("This challenge is complete.")),
-      );
-    }
-
     return Scaffold(
-      appBar: AppBar(title: const Text("Track Challenge Habit")),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(widget.habitData['type'] ?? 'Challenge Habit'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: handleTrack,
-              child: const Text("Track Progress"),
-            ),
-          ],
+      appBar: AppBar(title: const Text("Set Challenge")),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedType,
+                items: habitTypes
+                    .map((type) => DropdownMenuItem(
+                  value: type,
+                  child: Text(type),
+                ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => selectedType = value);
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Habit Type',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: minTarget.toString(),
+                      decoration: const InputDecoration(
+                        labelText: 'Min Target',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) =>
+                      value == null || value.isEmpty ? 'Enter min' : null,
+                      onChanged: (val) => minTarget = int.tryParse(val) ?? 1,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: maxTarget.toString(),
+                      decoration: const InputDecoration(
+                        labelText: 'Max Target',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) =>
+                      value == null || value.isEmpty ? 'Enter max' : null,
+                      onChanged: (val) => maxTarget = int.tryParse(val) ?? 5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: duration.toString(),
+                decoration: const InputDecoration(
+                  labelText: 'Duration (Days)',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Enter duration' : null,
+                onChanged: (val) => duration = int.tryParse(val) ?? 7,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: submitChallenge,
+                icon: const Icon(Icons.send),
+                label: const Text("Send Challenge"),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  backgroundColor: Colors.blueAccent,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

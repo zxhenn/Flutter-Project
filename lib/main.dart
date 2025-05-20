@@ -20,6 +20,10 @@ import 'Settings/EditProfileScreen.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import '/addition/awesome_notifications.dart';
 import '/DashboardScreens/challenge_screen.dart';
+import 'challenge/challenge_logger_page.dart';
+import 'challenge/challenge_add_habit.dart';
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -82,7 +86,33 @@ class MyApp extends StatelessWidget {
         '/terms': (context) => const TermsScreen(),
         '/EditProfileScreen':(context) => const EditProfileScreen(),
         '/challenge_screen':(context) => const ChallengeScreen(),
+
+
       },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/challengeLogger') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (context) => ChallengeLoggerPage(
+              friendId: args['friendId'],
+              friendName: args['friendName'],
+            ),
+
+          );
+        }
+        if (settings.name == '/challengeAddHabit') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (context) => ChallengeAddHabitPage(
+              friendId: args['friendId'],
+              friendName: args['friendName'],
+            ),
+          );
+        }
+
+        return null;
+      },
+
       navigatorObservers: [routeObserver],
     );
   }

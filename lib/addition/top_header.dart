@@ -54,15 +54,9 @@ class TopHeader extends StatelessWidget {
                     } else if (value == 'settings') {
                       Navigator.pushNamed(context, '/settings_page');
                     } else if (value == 'about') {
-                      showAboutDialog(
-                        context: context,
-                        applicationName: 'Gamified Productivity App',
-                        applicationVersion: '1.0.0',
-                        children: [
-                          const Text('Built with ❤️ using Flutter. Stay productive!'),
-                        ],
-                      );
+                      Navigator.pushNamed(context, '/welcome');
                     }
+
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'settings', child: Text('Settings')),
@@ -87,6 +81,7 @@ class TopHeader extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 23,
+                    fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,
                     height: 1.2,
