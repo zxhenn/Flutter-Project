@@ -29,7 +29,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
     final currentUserId = user.uid;
     final currentUserDoc = await FirebaseFirestore.instance.collection('users').doc(currentUserId).get();
+    final profileDoc = await FirebaseFirestore.instance.collection('Profiles').doc(currentUserId).get();
+
     final currentUserName = currentUserDoc.data()?['displayName'] ?? 'You';
+    final photoUrl = profileDoc.data()?['photoUrl'] ?? '';
     final currentUserCategoryPoints = currentUserDoc.data()?['categoryPoints'] ?? {};
     final currentUserPoints = (currentUserCategoryPoints as Map<String, dynamic>)
         .values
@@ -42,6 +45,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         'uid': currentUserId,
         'name': currentUserName,
         'points': currentUserPoints,
+        'photoUrl': photoUrl,
       });
 
       final friendsSnapshot = await FirebaseFirestore.instance
@@ -53,6 +57,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       for (final friendDoc in friendsSnapshot.docs) {
         final friendId = friendDoc.id;
         final friendUserDoc = await FirebaseFirestore.instance.collection('users').doc(friendId).get();
+        final friendProfileDoc = await FirebaseFirestore.instance.collection('Profiles').doc(friendId).get();
 
         if (friendUserDoc.exists) {
           final friendName = friendUserDoc.data()?['displayName'] ?? 'Friend';
@@ -60,11 +65,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           final friendPoints = (friendCategoryPoints as Map<String, dynamic>)
               .values
               .fold(0, (sum, val) => sum + (val is int ? val : 0));
+          final friendPhotoUrl = friendProfileDoc.data()?['photoUrl'] ?? '';
 
           allUsers.add({
             'uid': friendId,
             'name': friendName,
             'points': friendPoints,
+            'photoUrl': friendPhotoUrl,
           });
         }
       }
@@ -78,11 +85,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         final points = (categoryPoints as Map<String, dynamic>)
             .values
             .fold(0, (sum, val) => sum + (val is int ? val : 0));
+        final profileDoc = await FirebaseFirestore.instance.collection('Profiles').doc(doc.id).get();
+        final photoUrl = profileDoc.data()?['photoUrl'] ?? '';
 
         allUsers.add({
           'uid': doc.id,
           'name': name,
           'points': points,
+          'photoUrl': photoUrl,
         });
       }
     }
@@ -94,6 +104,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       isLoading = false;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -137,19 +148,50 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   final user = rankedUsers[index];
                   final rank = index + 1;
                   return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: rank == 1
-                          ? Colors.amber
-                          : rank == 2
-                          ? Colors.grey
-                          : rank == 3
-                          ? Colors.brown
-                          : Colors.blue,
-                      child: Text('$rank', style: const TextStyle(color: Colors.white)),
+                    leading: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Rank number or medal (LEFT side)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: Text(
+                            rank == 1
+                                ? '🥇'
+                                : rank == 2
+                                ? '🥈'
+                                : rank == 3
+                                ? '🥉'
+                                : '$rank',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: rank > 3 ? Colors.blue : Colors.black,
+                            ),
+                          ),
+                        ),
+
+                        // Profile image (CENTER)
+                        CircleAvatar(
+                          backgroundImage: user['photoUrl'] != null && user['photoUrl'] != ''
+                              ? NetworkImage(user['photoUrl'])
+                              : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
+                        ),
+                      ],
                     ),
-                    title: Text(user['name']),
-                    trailing: Text('${user['points']} pts', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      user['name'],
+                      style: const TextStyle(fontFamily: 'Montserrat'),
+                    ),
+                    trailing: Text(
+                      '${user['points']} pts',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Montserrat',
+                      ),
+                    ),
                   );
+
                 },
               ),
             )

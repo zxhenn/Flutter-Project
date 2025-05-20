@@ -93,11 +93,7 @@ class MyApp extends StatelessWidget {
         if (settings.name == '/challengeLogger') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
-            builder: (context) => ChallengeLoggerPage(
-              friendId: args['friendId'],
-              friendName: args['friendName'],
-            ),
-
+            builder: (context) => ChallengeLoggerPage(challengeId: 'your_challenge_id_here')
           );
         }
         if (settings.name == '/challengeAddHabit') {

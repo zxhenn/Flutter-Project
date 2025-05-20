@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'challenge_logger_page.dart';
 
 class ChallengeAddHabitPage extends StatefulWidget {
   final String friendId;
@@ -28,6 +31,43 @@ class _ChallengeAddHabitPageState extends State<ChallengeAddHabitPage> {
     'Cycling',
     'Meditation',
   ];
+
+  Future<String?> submitChallenge() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return null;
+
+    final challengeId = FirebaseFirestore.instance.collection('challenges').doc().id;
+    final challengeRef = FirebaseFirestore.instance.collection('challenges').doc(challengeId);
+
+    final challengeData = {
+      'senderId': currentUser.uid,
+      'receiverId': widget.friendId,
+      'senderName': currentUser.displayName ?? 'You',
+      'receiverName': widget.friendName,
+      'habitType': selectedType,
+      'targetMin': minTarget,
+      'targetMax': maxTarget,
+      'durationDays': duration,
+      'status': 'pending',
+      'createdAt': Timestamp.now(),
+      'senderProgress': 0,
+      'receiverProgress': 0,
+    };
+
+    print('DEBUG - challengeData: $challengeData');
+    print("Auth UID: ${FirebaseAuth.instance.currentUser?.uid}");
+    print("Sender in challengeData: ${challengeData['senderId']}");
+
+    try {
+      await challengeRef.set(challengeData);
+      return challengeId;
+    } catch (e) {
+      print('ERROR SUBMITTING CHALLENGE: $e');
+      return null;
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -142,9 +182,24 @@ class _ChallengeAddHabitPageState extends State<ChallengeAddHabitPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                onPressed: () {
-                  // TODO: Submit logic (save to Firebase)
-                },
+                  onPressed: () async {
+                    if (!_formKey.currentState!.validate()) return;
+
+                    final challengeId = await submitChallenge();
+                    if (challengeId != null && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Challenge sent!")),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChallengeLoggerPage(challengeId: challengeId),
+                        ),
+                      );
+
+                    }
+                  }
+
               )
             ],
           ),
