@@ -22,7 +22,7 @@ import '/addition/awesome_notifications.dart';
 import '/DashboardScreens/challenge_screen.dart';
 import 'challenge/challenge_logger_page.dart';
 import 'challenge/challenge_add_habit.dart';
-
+import '/Analysis/analysis_section.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +86,7 @@ class MyApp extends StatelessWidget {
         '/terms': (context) => const TermsScreen(),
         '/EditProfileScreen':(context) => const EditProfileScreen(),
         '/challenge_screen':(context) => const ChallengeScreen(),
+        '/Analysis':(context) => const AnalysisSection(),
 
 
       },

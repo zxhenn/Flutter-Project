@@ -83,7 +83,7 @@ class TopHeader extends StatelessWidget {
                   'GAMIFIED\nPRODUCTIVITY APP',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 23,
+                    fontSize: 19,
                     fontFamily: 'Montserrat',
                     fontWeight: FontWeight.bold,
                     color: Colors.blue,

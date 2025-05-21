@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'EditProfileScreen.dart';
 import '/utils/pointing_system.dart';
-
+import '/Analysis/analysis_screen.dart';
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -210,8 +210,14 @@ class _SettingsPageState extends State<SettingsPage> {
               _settingsButton(
                 icon: Icons.newspaper,
                 label: 'Analysis',
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AnalysisScreen()),
+                  );
+                },
               ),
+
               _settingsButton(
                 icon: Icons.info_outline,
                 label: 'About',

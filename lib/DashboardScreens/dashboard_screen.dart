@@ -11,7 +11,7 @@ import '/addition/top_header.dart';
 import '/addition/bottom_navbar.dart';
 import 'friends_screen.dart';
 import '/Settings/settings_page.dart';
-
+import '/rewards/powerup_manager.dart';
 import '/addition/awesome_notifications.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -96,6 +96,11 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
   void initState() {
     super.initState();
     _loadCategoryPoints();
+    PowerupManager.getTodayPowerup().then((powerup) {
+      if (powerup != null) {
+        print('Today\'s powerup: ${powerup['name']}');
+      }
+    });
   }
 
   Future<void> _loadCategoryPoints() async {
@@ -263,7 +268,7 @@ class _DashboardHomeContentState extends State<DashboardHomeContent> {
                     final String type = data['type'] ?? 'Habit';
                     final String unit = data['unit'] ?? '';
                     final String frequency = data['frequency'] ?? 'Daily';
-                    final int targetMin = data['targetMin'] ?? 0;
+                    final double targetMin = data['targetMin'] ?? 0;
                     final double targetMax = (data['targetMax'] ?? 0).toDouble();
                     final double todayProgress = (data['todayProgress'] ?? 0).toDouble();
                     final int durationDays = data['durationDays'] ?? 1;

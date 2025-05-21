@@ -10,7 +10,18 @@ class AddScreen extends StatefulWidget {
   State<AddScreen> createState() => _AddScreenState();
 }
 
+
 class _AddScreenState extends State<AddScreen> {
+
+  // For "Minutes" unit input
+  final TextEditingController minHours = TextEditingController();
+  final TextEditingController minMinutes = TextEditingController();
+  final TextEditingController minSeconds = TextEditingController();
+  final TextEditingController maxHours = TextEditingController();
+  final TextEditingController maxMinutes = TextEditingController();
+  final TextEditingController maxSeconds = TextEditingController();
+
+
   final List<String> categories = [
     'Cardiovascular Fitness',
     'Strength Training',
@@ -121,14 +132,63 @@ class _AddScreenState extends State<AddScreen> {
                       durationDays = '';
                     });
                   }),
-                  const Text('Minimum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  _buildTextField('e.g. 10 $unitLabel', (val) => minTarget = val),
-                  const SizedBox(height: 16),
-                  const Text('Maximum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  _buildTextField('e.g. 20 $unitLabel', (val) => maxTarget = val),
-                  const SizedBox(height: 16),
+                  if (selectedUnit == 'Minutes') ...[
+                    const Text('Minimum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Flexible(child: _buildTextFieldWithController('HH', minHours)),
+                        const SizedBox(width: 6),
+                        Flexible(child: _buildTextFieldWithController('MM', minMinutes)),
+                        const SizedBox(width: 6),
+                        Flexible(child: _buildTextFieldWithController('SS', minSeconds)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ValueListenableBuilder(
+                      valueListenable: minHours,
+                      builder: (_, __, ___) => ValueListenableBuilder(
+                        valueListenable: minMinutes,
+                        builder: (_, __, ___) => ValueListenableBuilder(
+                          valueListenable: minSeconds,
+                          builder: (_, __, ___) {
+                            final total = ((int.tryParse(minHours.text) ?? 0) * 60 +
+                                (int.tryParse(minMinutes.text) ?? 0) +
+                                (int.tryParse(minSeconds.text) ?? 0)) ~/ 1;
+                            return Text('≈ $total min', style: const TextStyle(color: Colors.grey));
+                          },
+                        ),
+                      ),
+                    ),
+
+
+                    const SizedBox(height: 16),
+                    const Text('Maximum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Flexible(child: _buildTextFieldWithController('HH', maxHours)),
+                        const SizedBox(width: 6),
+                        Flexible(child: _buildTextFieldWithController('MM', maxMinutes)),
+                        const SizedBox(width: 6),
+                        Flexible(child: _buildTextFieldWithController('SS', maxSeconds)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '≈ ${(int.tryParse(maxHours.text) ?? 0) * 60 + (int.tryParse(maxMinutes.text) ?? 0) + (int.tryParse(maxSeconds.text) ?? 0) ~/ 60} min',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                ] else ...[
+                    const Text('Minimum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    _buildTextField('e.g. 10 $unitLabel', (val) => minTarget = val),
+                    const SizedBox(height: 16),
+                    const Text('Maximum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    _buildTextField('e.g. 20 $unitLabel', (val) => maxTarget = val),
+                  ],
+
                   if (selectedFrequency == 'Weekly' || selectedFrequency == 'Monthly')
                     _buildDropdown('Duration', selectedPreset, durationPresets[selectedFrequency]!, (val) {
                       setState(() {
@@ -182,32 +242,83 @@ class _AddScreenState extends State<AddScreen> {
       ],
     );
   }
-
   Widget _buildTextField(String hint, Function(String) onChanged) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6, offset: const Offset(2, 4))]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade300,
+            blurRadius: 6,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
       child: TextField(
         keyboardType: TextInputType.number,
         onChanged: onChanged,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
       ),
     );
   }
 
+  Widget _buildTextFieldWithController(String hint, TextEditingController controller) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6, offset: const Offset(2, 4))],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
+
   Future<void> _saveHabit() async {
-    if (selectedCategory == null || selectedType == null || selectedUnit == null || selectedFrequency == null || minTarget.isEmpty || maxTarget.isEmpty || durationDays.isEmpty) {
+    final bool isMinutes = selectedUnit == 'Minutes';
+
+    if (selectedCategory == null || selectedType == null || selectedUnit == null || selectedFrequency == null || durationDays.isEmpty ||
+        (!isMinutes && (minTarget.isEmpty || maxTarget.isEmpty))) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete all fields.')));
       return;
     }
 
-    final parsedMin = int.tryParse(minTarget);
-    final parsedMax = int.tryParse(maxTarget);
+
+    final double parsedMin = selectedUnit == 'Minutes'
+        ? ((int.tryParse(minHours.text) ?? 0) * 3600 +
+        (int.tryParse(minMinutes.text) ?? 0) * 60 +
+        (int.tryParse(minSeconds.text) ?? 0)) / 60
+        : double.tryParse(minTarget) ?? 0;
+
+    final double parsedMax = selectedUnit == 'Minutes'
+        ? ((int.tryParse(maxHours.text) ?? 0) * 3600 +
+        (int.tryParse(maxMinutes.text) ?? 0) * 60 +
+        (int.tryParse(maxSeconds.text) ?? 0)) / 60
+        : double.tryParse(maxTarget) ?? 0;
+
     final parsedDuration = int.tryParse(durationDays);
-    if (parsedMin == null || parsedMax == null || parsedDuration == null || parsedMin > parsedMax) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Check targets and duration values.')));
+
+    if (parsedMin <= 0 || parsedMax <= 0 || parsedMin > parsedMax || parsedDuration == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Check targets and duration values.')),
+      );
       return;
     }
+
 
     try {
       final user = FirebaseAuth.instance.currentUser;

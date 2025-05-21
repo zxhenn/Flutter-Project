@@ -4,8 +4,8 @@ import 'dart:async';
 
 class MinutesTimerPage extends StatefulWidget {
   final String habitId;
-  final dynamic targetMin;
-  final dynamic targetMax;
+  final double targetMin;
+  final double targetMax;
 
   const MinutesTimerPage({
     super.key,
@@ -23,7 +23,9 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
   int _elapsedSeconds = 0;
   int _inactiveSeconds = 0;
   bool _isRunning = false;
+  StreamSubscription<Position>? _positionStream;
   double _lastSpeed = 0.0;
+  bool _shownVehicleWarning = false;
 
   @override
   void initState() {
@@ -44,26 +46,53 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
     }
   }
 
-  void _startTimer() async {
-    setState(() => _isRunning = true);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      final pos = await Geolocator.getCurrentPosition();
-      final speed = pos.speed; // m/s
-      _lastSpeed = speed;
+  StreamSubscription<Position>? _positionSubscription;
 
+  void _startTimer() {
+    setState(() => _isRunning = true);
+
+    // Start the speed stream
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 1,
+      ),
+    ).listen((pos) {
+      _lastSpeed = pos.speed;
+    });
+
+    // Start the timer using latest known speed
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
         _elapsedSeconds++;
-        if (speed == 0.0) {
+
+        if (_lastSpeed < 10.0 || _lastSpeed > 20.0) {
           _inactiveSeconds++;
+
+          if (_lastSpeed > 20.0 && !_shownVehicleWarning) {
+            _shownVehicleWarning = true;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('⚠️ Are you in a vehicle? This may affect accuracy.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
         }
       });
     });
   }
 
+
+
+
   void _stopTimer() {
     _timer?.cancel();
+    _positionStream?.cancel();
     setState(() => _isRunning = false);
   }
+
+
 
   void _saveAndExit() {
     final validSeconds = _elapsedSeconds - _inactiveSeconds;
@@ -85,14 +114,17 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
   @override
   void dispose() {
     _timer?.cancel();
+    _positionStream?.cancel();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {
     final formattedElapsed = _formatDuration(_elapsedSeconds);
-    final formattedTargetMin = _formatDuration(widget.targetMin * 60);
-    final formattedTargetMax = _formatDuration(widget.targetMax * 60);
+    final formattedTargetMin = _formatDuration((widget.targetMin * 60).toInt());
+    final formattedTargetMax = _formatDuration((widget.targetMax * 60).toInt());
+
 
     return Scaffold(
       appBar: AppBar(title: const Text('Minutes Tracker')),

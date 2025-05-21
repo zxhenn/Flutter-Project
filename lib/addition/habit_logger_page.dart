@@ -6,6 +6,7 @@ import 'minutes_timer_page.dart';
 import 'session_timer_page.dart';
 import 'gps_running_tracker.dart';
 import 'awesome_notifications.dart';
+import '/utils/pointing_system.dart';
 
 
 class HabitLoggerPage extends StatefulWidget {
@@ -23,38 +24,29 @@ class HabitLoggerPage extends StatefulWidget {
 }
 
 class _HabitLoggerPageState extends State<HabitLoggerPage> {
-  late dynamic todayProgress;
-  late dynamic targetMin;
-  late dynamic targetMax;
+  late double todayProgress;
+  late double targetMin;
+  late double targetMax;
   late dynamic habitData;
   late String unit;
   bool isComplete = false;
   int? sessionDuration; // for session time display
 
-  String _formatDistance(dynamic meters) {
-    if (meters < 1000) {
-      return '${meters.toStringAsFixed(0)} m';
-    } else {
-      double km = meters / 1000;
-      return '${km.toStringAsFixed(2)} km';
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    todayProgress = widget.habitData['todayProgress'] ?? 0;
-    targetMin = widget.habitData['targetMin'] ?? 0;
-    targetMax = widget.habitData['targetMax'] ?? 0;
+    todayProgress = (widget.habitData['todayProgress'] ?? 0).toDouble();
+    targetMin = (widget.habitData['targetMin'] ?? 0).toDouble();
+    targetMax = (widget.habitData['targetMax'] ?? 0).toDouble();
     unit = widget.habitData['unit'] ?? '';
     isComplete = widget.habitData['isComplete'] ?? false;
 
 
     _resetProgressIfNewDay().then((_) {
       setState(() {
-        todayProgress = widget.habitData['todayProgress'] ?? 0;
-        targetMin = widget.habitData['targetMin'] ?? 0;
-        targetMax = widget.habitData['targetMax'] ?? 0;
+        todayProgress = (widget.habitData['todayProgress'] ?? 0).toDouble();
+        targetMin = (widget.habitData['targetMin'] ?? 0).toDouble();
+        targetMax = (widget.habitData['targetMax'] ?? 0).toDouble();
         unit = widget.habitData['unit'] ?? '';
         isComplete = widget.habitData['isComplete'] ?? false;
       });
@@ -99,7 +91,7 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
       });
 
       setState(() {
-        todayProgress = 0;
+        todayProgress = 0.0;
         isComplete = false;
       });
     }
@@ -107,7 +99,7 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
 
 
 
-  Future<void> _updateProgress(int value) async {
+  Future<void> _updateProgress(double value) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) return;
@@ -133,11 +125,11 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
 
 
     // 🧠 Calculate adjusted thresholds if unit == Minutes
-    final int targetMinAdjusted = unit == 'Minutes' ? targetMin * 60 : targetMin;
-    final int targetMaxAdjusted = unit == 'Minutes' ? targetMax * 60 : targetMax;
+    final double targetMinAdjusted = unit == 'Minutes' ? targetMin * 60 : targetMin.toDouble();
+    final double targetMaxAdjusted = unit == 'Minutes' ? targetMax * 60 : targetMax.toDouble();
 
     // 🧮 Detect transitions: previously incomplete → now completed
-    final int previousProgress = habitData['todayProgress'] ?? 0;
+    final double previousProgress = (habitData['todayProgress'] ?? 0).toDouble();
     final bool previouslyCompletedMin = previousProgress >= targetMinAdjusted;
     final bool previouslyCompletedMax = previousProgress >= targetMaxAdjusted;
     final bool nowCompletedMin = value >= targetMinAdjusted;
@@ -180,25 +172,51 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
     });
 
     // 🏅 Award points
-    int pointsEarned = 0;
-    if (!previouslyCompletedMin && nowCompletedMin) pointsEarned += 5;
-    if (!previouslyCompletedMax && nowCompletedMax) pointsEarned += 5;
+    double pointsEarned = 0;
 
-    if (pointsEarned > 0) {
+    if (!previouslyCompletedMin && nowCompletedMin) {
+      pointsEarned = PointingSystem.calculateEarnedPoints(
+        targetMax: targetMax.toDouble(),
+        durationDays: durationDays,
+        todayProgress: value.toDouble(),
+        unit: unit,
+      );
+
+      // Check and apply powerup multiplier
+      final today = DateTime.now();
+      final powerupId = "${today.year}-${today.month}-${today.day}";
+
+      final powerupRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('powerups')
+          .doc(powerupId);
+
+      final powerupDoc = await powerupRef.get();
+      if (powerupDoc.exists) {
+        final powerupData = powerupDoc.data()!;
+        if (powerupData['type'] == 'multiplier' &&
+            !(powerupData['claimed'] ?? false)) {
+          final multiplier = (powerupData['value'] ?? 1.0) as num;
+          pointsEarned *= multiplier;
+          await powerupRef.update({'claimed': true});
+        }
+      }
+
       final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
       final userDoc = await userRef.get();
       final Map<String, dynamic> points = userDoc.data()?['categoryPoints'] ?? {};
-      points[category] = (points[category] ?? 0) + pointsEarned;
+      points[category] = (points[category] ?? 0) + pointsEarned.toInt();
 
       await userRef.set({'categoryPoints': points}, SetOptions(merge: true));
 
       await NotificationService.showInstantNotification(
         'Habit Progress 🎯',
-        'You earned +$pointsEarned points in $category!\n'
+        'You earned +${pointsEarned.toInt()} points in $category!\n'
             '${nowCompletedMax ? '✅ Max target hit!' : '👍 Min target reached!'}',
-
       );
     }
+
   }
 
 
@@ -207,11 +225,11 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
 
   String _formatDuration(int seconds) {
     final duration = Duration(seconds: seconds);
-    final hours = duration.inHours.toString().padLeft(2, '0');
-    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
     final secs = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$hours:$minutes:$secs';
+    return '$minutes:$secs';
   }
+
 
 
   @override
@@ -240,13 +258,10 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
             const SizedBox(height: 12),
             Text(
               unit == 'Minutes'
-                  ? _formatDuration(todayProgress) + ' / ' + _formatDuration(targetMax)
-                  : unit == 'Distance (km)'
-                  ? '${_formatDistance(todayProgress)} / ${_formatDistance(targetMax)}'
+                  ? _formatDuration(todayProgress.toInt()) + ' / ' + _formatDuration(targetMax.toInt())
                   : '$todayProgress / $targetMax $unit',
               style: const TextStyle(fontSize: 18),
             ),
-
 
             if (sessionDuration != null)
               Padding(
@@ -275,7 +290,9 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
                   );
                   if (result != null) {
                     final seconds = result;
-                    _updateProgress(seconds); // ✅ send raw seconds
+                    final minutes = (seconds / 60).toDouble();
+                    _updateProgress(todayProgress + minutes); // ✅ send raw seconds
+
                   }
 
 

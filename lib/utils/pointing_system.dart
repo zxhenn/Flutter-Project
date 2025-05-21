@@ -1,6 +1,42 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PointingSystem {
+  // 🔵 Main point formula
+  static double calculateEarnedPoints({
+    required double targetMax,
+    required int durationDays,
+    required double todayProgress,
+    required String unit,
+  }) {
+    final double progressRatio = (todayProgress / targetMax).clamp(0.0, 1.0);
+
+    final unitWeight = _getUnitWeight(unit);
+    final double basePoints = durationDays * 0.2;
+    final double effortPoints = targetMax * unitWeight;
+    final double rawPoints = basePoints + effortPoints;
+
+    final double finalPoints = progressRatio < 0.5
+        ? 0
+        : rawPoints * progressRatio.clamp(0.5, 1.0);
+
+    return double.parse(finalPoints.toStringAsFixed(1)); // 1 decimal
+  }
+
+  // 🧠 Unit weights
+  static double _getUnitWeight(String unit) {
+    switch (unit.toLowerCase()) {
+      case 'minutes':
+        return 0.05;
+      case 'sessions':
+        return 1.0;
+      case 'distance (km)':
+        return 0.5;
+      default:
+        return 0.1;
+    }
+  }
+
+  // 🔁 Habit consistency/rank update
   static Future<void> updateHabitProgress(String userId, String habitId) async {
     final habitRef = FirebaseFirestore.instance
         .collection('users')
@@ -22,35 +58,26 @@ class PointingSystem {
     final double consistencyRatio = daysLogged / daysPassed;
 
     final String type = data['type'] ?? '';
-    int points = _getPointsByType(type);
+    final String category = data['category'] ?? 'Misc';
 
     await habitRef.update({
       'daysPassed': daysPassed,
       'overallProgressRatio': overallProgressRatio,
       'consistencyRatio': consistencyRatio,
       'overallProgressStatus': overallProgressRatio >= 1.0 ? 'Completed' : 'Ongoing',
-      '${_getCategoryPointsField(type)}': points,
+      '${_getCategoryPointsField(type)}': FieldValue.increment(0), // no-op but keeps field consistent
     });
   }
 
-  static int _getPointsByType(String type) {
-    final typePoints = {
-      'Running': 10,
-      'Yoga': 5,
-      'Weightlifting': 8,
-      // Add other mappings here
-    };
-    return typePoints[type] ?? 3;
-  }
-
+  // 🔢 Mapping types to category fields
   static String _getCategoryPointsField(String type) {
-    // You can expand this logic for other categories
-    if (type == 'Running') return 'cardioPoints';
-    if (type == 'Weightlifting') return 'strengthPoints';
+    if (type.toLowerCase().contains('run') || type.toLowerCase().contains('walk')) return 'cardioPoints';
+    if (type.toLowerCase().contains('weight') || type.toLowerCase().contains('lift')) return 'strengthPoints';
     return 'miscPoints';
   }
-  static int calculateTotalPoints(List<Map<String, dynamic>> habits) {
 
+  // 📊 Totals and category breakdown
+  static int calculateTotalPoints(List<Map<String, dynamic>> habits) {
     int total = 0;
     for (var habit in habits) {
       total += (habit['points'] as num?)?.toInt() ?? 0;
@@ -58,7 +85,7 @@ class PointingSystem {
     return total;
   }
 
-  Map<String, int> calculateCategoryPoints(List<Map<String, dynamic>> habits) {
+  static Map<String, int> calculateCategoryPoints(List<Map<String, dynamic>> habits) {
     Map<String, int> categoryMap = {};
     for (var habit in habits) {
       final category = habit['category'] ?? 'Other';
@@ -68,16 +95,15 @@ class PointingSystem {
     return categoryMap;
   }
 
+  // 🪙 Honor Points (bonus system)
   static Future<void> rewardHonorPoints(String uid, int amount) async {
     final ref = FirebaseFirestore.instance.collection('Profiles').doc(uid);
     await ref.set({'honorPoints': FieldValue.increment(amount)}, SetOptions(merge: true));
   }
-  static Future<int> getTotalPoints(String uid) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('Profiles')
-        .doc(uid)
-        .get();
 
+  // 🏆 Rank Calculation
+  static Future<int> getTotalPoints(String uid) async {
+    final doc = await FirebaseFirestore.instance.collection('Profiles').doc(uid).get();
     if (!doc.exists) return 0;
 
     final data = doc.data() ?? {};
@@ -87,6 +113,7 @@ class PointingSystem {
 
     return cardio + strength + misc;
   }
+
   static String getRankFromPoints(int points) {
     if (points >= 700) return 'Grandmaster';
     if (points >= 500) return 'Master';
@@ -96,7 +123,4 @@ class PointingSystem {
     if (points >= 50) return 'Silver';
     return 'Bronze';
   }
-
-
 }
-

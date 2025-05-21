@@ -46,6 +46,7 @@ dependencies:
       ref: master
   timezone: ^0.9.2
   lottie: ^2.6.0
+  fl_chart: ^0.64.0
 
 
   # The following adds the Cupertino Icons font to your application.
