@@ -14,20 +14,12 @@ class _AddScreenState extends State<AddScreen> {
   final List<String> categories = [
     'Cardiovascular Fitness',
     'Strength Training',
-    'Flexibility and Mobility',
-    'Sports and Recreational Activities',
-    'Lifestyle Physical Activity',
-    'Fitness/Medication for Specific Populations',
-    'Custom'
+    'Custom',
   ];
 
   final Map<String, List<String>> typesByCategory = {
-    'Cardiovascular Fitness': ['Running', 'Brisk walking', 'Cycling', 'Swimming', 'Jump rope', 'Dance or aerobic classes'],
+    'Cardiovascular Fitness': ['Running', 'Brisk walking', 'Cycling', 'Swimming', 'Jump rope', 'Dance or aerobic classes', 'Taking stairs'],
     'Strength Training': ['Weightlifting', 'Push-ups', 'Squats', 'Resistance band workouts', 'CrossFit'],
-    'Flexibility and Mobility': ['Stretching routines', 'Yoga', 'Pilates', 'Dynamic warm-ups', 'Cool-downs'],
-    'Sports and Recreational Activities': ['Basketball', 'Soccer', 'Tennis', 'Martial arts', 'Hiking', 'Skiing', 'Rock climbing'],
-    'Lifestyle Physical Activity': ['Walking to work', 'Taking stairs', 'Housework', 'Gardening', 'Standing desk', 'Walking meetings'],
-    'Fitness/Medication for Specific Populations': ['Senior fitness', 'Pregnancy fitness', 'Postpartum fitness', 'Adaptive fitness', 'Youth fitness'],
     'Custom': [],
   };
 
@@ -70,7 +62,7 @@ class _AddScreenState extends State<AddScreen> {
     }
 
     if (type.contains('lift') || type.contains('push') || type.contains('squat') || type.contains('weight')) {
-      return ['Reps', 'Minutes', 'Sessions'];
+      return ['Sessions'];
     }
 
     if (type.contains('yoga') || type.contains('stretch') || type.contains('pilates')) {
@@ -87,7 +79,7 @@ class _AddScreenState extends State<AddScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Image.asset('assets/images/bg.png', fit: BoxFit.cover, height: double.infinity, width: double.infinity),
+          // Image.asset('assets/images/bg.png', fit: BoxFit.cover, height: double.infinity, width: double.infinity),
           BackdropFilter(filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5)),
           SafeArea(
             child: SingleChildScrollView(

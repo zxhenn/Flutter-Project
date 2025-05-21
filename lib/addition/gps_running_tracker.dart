@@ -7,7 +7,6 @@ class GPSRunningTrackerPage extends StatefulWidget {
   final dynamic target;
   final String unit;
 
-
   const GPSRunningTrackerPage({
     super.key,
     required this.habitId,
@@ -20,6 +19,8 @@ class GPSRunningTrackerPage extends StatefulWidget {
 }
 
 class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> {
+  bool _isDisposed = false;
+
   Stopwatch stopwatch = Stopwatch();
   Timer? updateTimer;
   Position? _lastPosition;
@@ -30,10 +31,13 @@ class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     updateTimer?.cancel();
     stopwatch.stop();
+    _isTracking = false;
     super.dispose();
   }
+
 
   void startTracking() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -52,36 +56,59 @@ class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> {
 
     _lastPosition = await Geolocator.getCurrentPosition();
     stopwatch.start();
-    setState(() => _isTracking = true);
 
-    updateTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+    _isTracking = true;
+    if (!_isDisposed) {
+      setState(() {});
+    }
+
+
+
+    updateTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (_isDisposed || _lastPosition == null) return;
+
       final newPos = await Geolocator.getCurrentPosition();
+
       final distance = Geolocator.distanceBetween(
         _lastPosition!.latitude,
         _lastPosition!.longitude,
         newPos.latitude,
         newPos.longitude,
       );
+
+      final minutes = stopwatch.elapsed.inMinutes;
+      final seconds = stopwatch.elapsed.inSeconds % 60;
+
+      if (_isDisposed || !mounted) return;
+
       setState(() {
-        _totalDistance += distance / 1000; // meters to km
-        _speed = newPos.speed * 3.6; // m/s to km/h
+        _totalDistance += distance / 1000;
+        _speed = newPos.speed * 3.6;
         _lastPosition = newPos;
-        final minutes = stopwatch.elapsed.inMinutes;
-        final seconds = stopwatch.elapsed.inSeconds % 60;
         elapsed = '$minutes:${seconds.toString().padLeft(2, '0')}';
       });
     });
+
+
   }
 
   void stopAndSave() {
-    stopwatch.stop();
-    updateTimer?.cancel();
+    if (_isTracking) {
+      updateTimer?.cancel();
+      stopwatch.stop();
+      _isTracking = false;
+    }
+    if (!mounted) return;
     Navigator.pop(context, _totalDistance);
   }
 
   void cancelTracking() {
-    updateTimer?.cancel();
-    stopwatch.stop();
+    if (_isTracking) {
+      updateTimer?.cancel();
+      stopwatch.stop();
+      _isTracking = false;
+    }
+    if (!mounted) return;
     Navigator.pop(context);
   }
 

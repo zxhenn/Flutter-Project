@@ -10,7 +10,10 @@ class TopHeader extends StatelessWidget {
     this.onAddTap,
     this.onProfileTap,
     this.onNotificationTap,
+    this.notifications = const [],
   });
+
+  final List<String> notifications;
 
   @override
   Widget build(BuildContext context) {
@@ -90,30 +93,49 @@ class TopHeader extends StatelessWidget {
                 ),
 
                 // Notification Bell (placeholder)
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Notifications coming soon!')),
-                    );
-                  },
-                  child: Stack(
+                PopupMenuButton<int>(
+                  icon: Stack(
                     children: [
                       const Icon(Icons.notifications, size: 32, color: Colors.blue),
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
+                      if (notifications.isNotEmpty)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
+                  itemBuilder: (context) => notifications.isEmpty
+                      ? [
+                    const PopupMenuItem<int>(
+                      value: -1,
+                      child: Text('No notifications'),
+                    ),
+                  ]
+                      : notifications
+                      .asMap()
+                      .entries
+                      .map((entry) => PopupMenuItem<int>(
+                    value: entry.key,
+                    child: Text(entry.value),
+                  ))
+                      .toList(),
+                  onSelected: (index) {
+                    if (index != -1) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Tapped: ${notifications[index]}')),
+                      );
+                    }
+                  },
                 ),
+
               ],
             ),
           ),

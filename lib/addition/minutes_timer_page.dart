@@ -1,34 +1,62 @@
-// minutes_timer_page.dart
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
-  class MinutesTimerPage extends StatefulWidget {
-    final String habitId;
-    final dynamic targetMin;
-    final dynamic targetMax;
+class MinutesTimerPage extends StatefulWidget {
+  final String habitId;
+  final dynamic targetMin;
+  final dynamic targetMax;
 
+  const MinutesTimerPage({
+    super.key,
+    required this.habitId,
+    required this.targetMin,
+    required this.targetMax,
+  });
 
-    const MinutesTimerPage({
-      super.key,
-      required this.habitId,
-      required this.targetMin,
-      required this.targetMax,
-
-    });
-
-    @override
-    State<MinutesTimerPage> createState() => _MinutesTimerPageState();
-  }
+  @override
+  State<MinutesTimerPage> createState() => _MinutesTimerPageState();
+}
 
 class _MinutesTimerPageState extends State<MinutesTimerPage> {
   Timer? _timer;
   int _elapsedSeconds = 0;
+  int _inactiveSeconds = 0;
   bool _isRunning = false;
+  double _lastSpeed = 0.0;
 
-  void _startTimer() {
+  @override
+  void initState() {
+    super.initState();
+    _checkLocationPermission();
+  }
+
+  Future<void> _checkLocationPermission() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
+    }
+  }
+
+  void _startTimer() async {
     setState(() => _isRunning = true);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() => _elapsedSeconds++);
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final pos = await Geolocator.getCurrentPosition();
+      final speed = pos.speed; // m/s
+      _lastSpeed = speed;
+
+      setState(() {
+        _elapsedSeconds++;
+        if (speed == 0.0) {
+          _inactiveSeconds++;
+        }
+      });
     });
   }
 
@@ -38,7 +66,8 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
   }
 
   void _saveAndExit() {
-    Navigator.pop(context, _elapsedSeconds);
+    final validSeconds = _elapsedSeconds - _inactiveSeconds;
+    Navigator.pop(context, validSeconds);
   }
 
   void _discardAndExit() {
@@ -47,10 +76,11 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
 
   String _formatDuration(int seconds) {
     final duration = Duration(seconds: seconds);
-    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
     final secs = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$secs';
   }
+
 
   @override
   void dispose() {
@@ -61,8 +91,8 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
   @override
   Widget build(BuildContext context) {
     final formattedElapsed = _formatDuration(_elapsedSeconds);
-    final formattedTargetMin = _formatDuration(widget.targetMin);
-    final formattedTargetMax = _formatDuration(widget.targetMax);
+    final formattedTargetMin = _formatDuration(widget.targetMin * 60);
+    final formattedTargetMax = _formatDuration(widget.targetMax * 60);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Minutes Tracker')),
@@ -76,6 +106,9 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> {
             Text('Elapsed Time', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 12),
             Text(formattedElapsed, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Text('Inactive Time: $_inactiveSeconds s'),
+            Text('Speed: ${_lastSpeed.toStringAsFixed(2)} m/s'),
             const SizedBox(height: 24),
             if (!_isRunning)
               ElevatedButton.icon(

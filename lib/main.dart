@@ -93,9 +93,12 @@ class MyApp extends StatelessWidget {
         if (settings.name == '/challengeLogger') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
-            builder: (context) => ChallengeLoggerPage(challengeId: 'your_challenge_id_here')
+            builder: (context) => ChallengeLoggerPage(
+              challengeId: args['challengeData']['id'],
+            ),
           );
         }
+
         if (settings.name == '/challengeAddHabit') {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(

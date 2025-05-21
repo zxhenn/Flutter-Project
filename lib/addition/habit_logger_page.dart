@@ -31,6 +31,15 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
   bool isComplete = false;
   int? sessionDuration; // for session time display
 
+  String _formatDistance(dynamic meters) {
+    if (meters < 1000) {
+      return '${meters.toStringAsFixed(0)} m';
+    } else {
+      double km = meters / 1000;
+      return '${km.toStringAsFixed(2)} km';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -198,10 +207,12 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
 
   String _formatDuration(int seconds) {
     final duration = Duration(seconds: seconds);
+    final hours = duration.inHours.toString().padLeft(2, '0');
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
     final secs = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$secs';
+    return '$hours:$minutes:$secs';
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -230,9 +241,12 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
             Text(
               unit == 'Minutes'
                   ? _formatDuration(todayProgress) + ' / ' + _formatDuration(targetMax)
+                  : unit == 'Distance (km)'
+                  ? '${_formatDistance(todayProgress)} / ${_formatDistance(targetMax)}'
                   : '$todayProgress / $targetMax $unit',
               style: const TextStyle(fontSize: 18),
             ),
+
 
             if (sessionDuration != null)
               Padding(
@@ -259,7 +273,12 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
                       ),
                     ),
                   );
-                  if (result != null) _updateProgress(result);
+                  if (result != null) {
+                    final seconds = result;
+                    _updateProgress(seconds); // ✅ send raw seconds
+                  }
+
+
                 },
                 child: const Text('Track Minutes'),
               )
@@ -299,7 +318,11 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
                         ),
                       ),
                     );
-                    if (result != null) _updateProgress(result);
+                    if (result != null) {
+                      final seconds = result;
+                      _updateProgress(seconds); // ✅ send raw seconds
+                    }
+
                   },
                   child: const Text('Track Now (GPS)'),
                 ),
