@@ -65,16 +65,22 @@ class PointingSystem {
       'overallProgressRatio': overallProgressRatio,
       'consistencyRatio': consistencyRatio,
       'overallProgressStatus': overallProgressRatio >= 1.0 ? 'Completed' : 'Ongoing',
-      '${_getCategoryPointsField(type)}': FieldValue.increment(0), // no-op but keeps field consistent
+      '${getCategoryPointsField(category)}': FieldValue.increment(0), // no-op but keeps field consistent
     });
   }
 
   // 🔢 Mapping types to category fields
-  static String _getCategoryPointsField(String type) {
-    if (type.toLowerCase().contains('run') || type.toLowerCase().contains('walk')) return 'cardioPoints';
-    if (type.toLowerCase().contains('weight') || type.toLowerCase().contains('lift')) return 'strengthPoints';
-    return 'miscPoints';
+  static String getCategoryPointsField(String category) {
+    switch (category.trim().toLowerCase()) {
+      case 'strength training':
+        return 'strengthPoints';
+      case 'cardiovascular fitness':
+        return 'cardioPoints';
+      default:
+        return 'miscPoints';
+    }
   }
+
 
   // 📊 Totals and category breakdown
   static int calculateTotalPoints(List<Map<String, dynamic>> habits) {
@@ -97,30 +103,56 @@ class PointingSystem {
 
   // 🪙 Honor Points (bonus system)
   static Future<void> rewardHonorPoints(String uid, int amount) async {
-    final ref = FirebaseFirestore.instance.collection('Profiles').doc(uid);
+    final ref = FirebaseFirestore.instance.collection('users').doc(uid);
     await ref.set({'honorPoints': FieldValue.increment(amount)}, SetOptions(merge: true));
   }
 
   // 🏆 Rank Calculation
   static Future<int> getTotalPoints(String uid) async {
-    final doc = await FirebaseFirestore.instance.collection('Profiles').doc(uid).get();
+    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
     if (!doc.exists) return 0;
 
     final data = doc.data() ?? {};
-    final cardio = (data['cardioPoints'] ?? 0) as int;
     final strength = (data['strengthPoints'] ?? 0) as int;
+    final cardio = (data['cardioPoints'] ?? 0) as int;
     final misc = (data['miscPoints'] ?? 0) as int;
+    return strength + cardio + misc;
 
-    return cardio + strength + misc;
   }
 
   static String getRankFromPoints(int points) {
-    if (points >= 700) return 'Grandmaster';
-    if (points >= 500) return 'Master';
-    if (points >= 350) return 'Diamond';
-    if (points >= 200) return 'Platinum';
+    if (points >= 4000) return 'Grandmaster';
+    if (points >= 1000) return 'Master';
+    if (points >= 500) return 'Diamond';
+    if (points >= 200) return 'Emerald';
     if (points >= 100) return 'Gold';
     if (points >= 50) return 'Silver';
     return 'Bronze';
   }
+  static Future<String?> getTodayPowerupAssetPath(String uid) async {
+    final now = DateTime.now();
+    final docId = '${now.year}-${now.month}-${now.day}';
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('powerups')
+        .doc(docId)
+        .get();
+
+    if (!doc.exists) return null;
+
+    final type = doc.data()?['type'];
+    switch (type) {
+      case 'cardio':
+        return 'assets/boosts/cardio_charge.png';
+      case 'strength':
+        return 'assets/boosts/iron_boost.png';
+      case 'custom':
+        return 'assets/boosts/focus_boost.png';
+      default:
+        return null;
+    }
+  }
+
 }

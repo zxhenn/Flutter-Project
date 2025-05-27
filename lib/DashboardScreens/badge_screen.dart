@@ -58,29 +58,24 @@ class BadgeScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               const _PowerUpCard(
-                icon: Icons.front_hand,
-                title: 'Power Fist',
-                description: 'Double Lifting Powers X2 on the earning points',
+                imagePath: 'assets/boosts/cardio_charge.png',
+                title: 'Cardio Charge',
+                description: 'This power-up gives you +50% extra points for completed Cardiovascular habits.',
               ),
               const SizedBox(height: 12),
               const _PowerUpCard(
-                icon: Icons.flash_on,
-                title: 'Electric',
-                description: 'Double Running Power X2 on the earning points',
+                imagePath: 'assets/boosts/iron_boost.png',
+                title: 'Iron Boost',
+                description: 'This power-up boosts your Strength Training habit by granting +50% extra points.',
               ),
               const SizedBox(height: 12),
               const _PowerUpCard(
-                icon: Icons.auto_awesome,
-                title: 'Aura',
-                description: '5% Power boost',
+                imagePath: 'assets/boosts/focus_boost.png',
+                title: 'Focus Boost',
+                description: 'This power-up grants +50% extra points for any completed custom habit.',
               ),
-              const SizedBox(height: 12),
-              const _PowerUpCard(
-                icon: Icons.medication,
-                title: 'Tablet',
-                description: '10% Medicine boost',
-              ),
-              const SizedBox(height: 24),
+
+
             ],
           ),
         ),
@@ -111,12 +106,12 @@ class _BadgeTile extends StatelessWidget {
 }
 
 class _PowerUpCard extends StatelessWidget {
-  final IconData icon;
+  final String imagePath;
   final String title;
   final String description;
 
   const _PowerUpCard({
-    required this.icon,
+    required this.imagePath,
     required this.title,
     required this.description,
   });
@@ -134,7 +129,7 @@ class _PowerUpCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 32, color: Colors.blueAccent),
+          Image.asset(imagePath, height: 64, width: 64),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -151,3 +146,4 @@ class _PowerUpCard extends StatelessWidget {
     );
   }
 }
+

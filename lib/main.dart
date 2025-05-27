@@ -23,7 +23,7 @@ import '/DashboardScreens/challenge_screen.dart';
 import 'challenge/challenge_logger_page.dart';
 import 'challenge/challenge_add_habit.dart';
 import '/Analysis/analysis_section.dart';
-
+import '/DashboardScreens/view_profile.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -86,7 +86,10 @@ class MyApp extends StatelessWidget {
         '/terms': (context) => const TermsScreen(),
         '/EditProfileScreen':(context) => const EditProfileScreen(),
         '/challenge_screen':(context) => const ChallengeScreen(),
-        '/Analysis':(context) => const AnalysisSection(),
+        '/view_profile': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return ViewProfileScreen(userId: args['userId']);
+        },
 
 
       },

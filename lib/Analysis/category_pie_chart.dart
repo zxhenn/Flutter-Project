@@ -4,10 +4,13 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 class CategoryPieChart extends StatelessWidget {
-  const CategoryPieChart({super.key});
+  final String userId;
+  const CategoryPieChart({super.key, required this.userId});
 
   Future<Map<String, double>> _loadCategoryPoints() async {
     final user = FirebaseAuth.instance.currentUser;
+
+
     if (user == null) return {};
 
     final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();

@@ -1,58 +1,55 @@
-import 'dart:math';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
-class WeeklyProgressChart extends StatelessWidget {
-  final List<double> values;
-  final List<String>? labels;
+class WeeklyLogBarChart extends StatelessWidget {
+  final Map<String, int> logCounts;
 
-  const WeeklyProgressChart({
-    super.key,
-    required this.values,
-    this.labels,
-  });
+  const WeeklyLogBarChart({super.key, required this.logCounts});
 
   @override
   Widget build(BuildContext context) {
-    final barLabels = labels ??
-        List.generate(values.length, (i) => 'D${i + 1}'); // fallback dummy labels
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceBetween,
-        maxY: values.isNotEmpty ? values.reduce(max) + 5 : 10,
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, _) {
-                int index = value.toInt();
-                if (index >= 0 && index < barLabels.length) {
-                  return Text(barLabels[index], style: const TextStyle(fontSize: 12));
-                }
-                return const Text('');
-              },
-            ),
-          ),
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: true),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: Text(
+            'Weekly Log Count',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
           ),
         ),
-        barGroups: values.asMap().entries.map((entry) {
-          final index = entry.key;
-          final value = entry.value;
-          return BarChartGroupData(x: index, barRods: [
-            BarChartRodData(
-              toY: value,
-              color: index.isEven ? Colors.cyan : Colors.blue,
-              width: 14,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ]);
-        }).toList(),
-        borderData: FlBorderData(show: false),
-        gridData: FlGridData(show: false),
-      ),
+        SizedBox(
+          height: 200,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(7, (index) {
+              final day = days[index];
+              final count = logCounts[day] ?? 0;
+              return Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text('$count', style: const TextStyle(fontSize: 13)),
+                    Container(
+                      height: (count * 20).toDouble().clamp(0, 160), // max height limit
+                      width: 18,
+                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    Text(day, style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
     );
   }
 }
+

@@ -102,7 +102,10 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
   Future<void> _updateProgress(double value) async {
     final user = FirebaseAuth.instance.currentUser;
 
-    if (user == null) return;
+    if (user == null) {
+      print('User is null');
+      return;
+    }
 
     // Reference this user's habit document
     final docRef = FirebaseFirestore.instance
@@ -145,10 +148,28 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
     // 📈 Increment daysLogged ONCE per newly completed min target
     int updatedDaysLogged = currentLoggedDays;
     if (!previouslyCompletedMin && nowCompletedMin) {
+      final now = DateTime.now();
+      final todayMidnight = DateTime(now.year, now.month, now.day);
+
+      final List existingDates = habitData['logDates'] ?? [];
+      final alreadyLoggedToday = existingDates.any((ts) {
+        final d = (ts as Timestamp).toDate();
+        return d.year == todayMidnight.year &&
+            d.month == todayMidnight.month &&
+            d.day == todayMidnight.day;
+      });
+
+      if (!alreadyLoggedToday) {
+        await docRef.update({
+          'logDates': FieldValue.arrayUnion([Timestamp.fromDate(now)]),
+        });
+      }
+
       updatedDaysLogged += 1;
       await docRef.update({
         'loggedToday': true,
         'lastLogDate': Timestamp.now(),
+
       });
     }
 
@@ -183,32 +204,32 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
       );
 
       // Check and apply powerup multiplier
-      final today = DateTime.now();
-      final powerupId = "${today.year}-${today.month}-${today.day}";
-
-      final powerupRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('powerups')
-          .doc(powerupId);
-
-      final powerupDoc = await powerupRef.get();
-      if (powerupDoc.exists) {
-        final powerupData = powerupDoc.data()!;
-        if (powerupData['type'] == 'multiplier' &&
-            !(powerupData['claimed'] ?? false)) {
-          final multiplier = (powerupData['value'] ?? 1.0) as num;
-          pointsEarned *= multiplier;
-          await powerupRef.update({'claimed': true});
-        }
-      }
+      // final today = DateTime.now();
+      // final powerupId = "${today.year}-${today.month}-${today.day}";
+      //
+      // final powerupRef = FirebaseFirestore.instance
+      //     .collection('users')
+      //     .doc(user.uid)
+      //     .collection('powerups')
+      //     .doc(powerupId);
+      //
+      // final powerupDoc = await powerupRef.get();
+      // if (powerupDoc.exists) {
+      //   final powerupData = powerupDoc.data()!;
+      //   if (powerupData['category'] == 'multiplier' &&
+      //       !(powerupData['claimed'] ?? false)) {
+      //     final multiplier = (powerupData['value'] ?? 1.0) as num;
+      //     pointsEarned *= multiplier;
+      //     await powerupRef.update({'claimed': true});
+      //   }
+      // }
 
       final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      final userDoc = await userRef.get();
-      final Map<String, dynamic> points = userDoc.data()?['categoryPoints'] ?? {};
-      points[category] = (points[category] ?? 0) + pointsEarned.toInt();
 
-      await userRef.set({'categoryPoints': points}, SetOptions(merge: true));
+      final categoryPointsField = PointingSystem.getCategoryPointsField(category);
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        categoryPointsField: FieldValue.increment(pointsEarned.toInt()),
+      }, SetOptions(merge: true));
 
       await NotificationService.showInstantNotification(
         'Habit Progress 🎯',

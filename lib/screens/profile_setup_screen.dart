@@ -138,7 +138,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       body: Stack(
         children: [
           SizedBox.expand(
-            child: Image.asset('assets/images/bg.png', fit: BoxFit.cover),
+            // child: Image.asset('assets/images/bg.png', fit: BoxFit.cover),
           ),
           SafeArea(
             child: SingleChildScrollView(

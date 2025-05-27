@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class AchievementSummaryCard extends StatelessWidget {
-  const AchievementSummaryCard({super.key});
+  final String userId;
+  const AchievementSummaryCard({super.key, required this.userId});
 
   Future<Map<String, dynamic>> _loadAchievements() async {
     final user = FirebaseAuth.instance.currentUser;

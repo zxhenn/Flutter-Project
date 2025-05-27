@@ -42,4 +42,20 @@ Future<void> updateStreakAndBadges(String habitId, double todayValue, double tar
     'longestStreak': newStreak > longestStreak ? newStreak : longestStreak,
     'lastSuccessDate': todayValue >= targetMin ? FieldValue.serverTimestamp() : lastDate,
   });
+  String getPowerupAssetPath(String type) {
+    switch (type.toLowerCase()) {
+      case 'cardio':
+      case 'cardio_charge':
+        return 'assets/boosts/cardio_charge.png';
+      case 'strength':
+      case 'iron_boost':
+        return 'assets/boosts/iron_boost.png';
+      case 'custom':
+      case 'focus_boost':
+        return 'assets/boosts/focus_boost.png';
+      default:
+        return 'assets/boosts/default.png'; // Fallback if type is missing
+    }
+  }
+
 }

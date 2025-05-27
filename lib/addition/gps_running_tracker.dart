@@ -81,12 +81,24 @@ class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> {
 
       if (_isDisposed || !mounted) return;
 
-      setState(() {
-        _totalDistance += distance / 1000;
-        _speed = newPos.speed * 3.6;
-        _lastPosition = newPos;
-        elapsed = '$minutes:${seconds.toString().padLeft(2, '0')}';
-      });
+      final speedKmh = newPos.speed * 3.6;
+
+      if (speedKmh >= 10.0) {
+        setState(() {
+          _totalDistance += distance / 1000; // only count if fast enough
+          _speed = speedKmh;
+          _lastPosition = newPos;
+          elapsed = '$minutes:${seconds.toString().padLeft(2, '0')}';
+
+        });
+
+      } else {
+        setState(() {
+          _speed = speedKmh; // show speed, but don't count distance
+          elapsed = '$minutes:${seconds.toString().padLeft(2, '0')}';
+        });
+      }
+
     });
 
 

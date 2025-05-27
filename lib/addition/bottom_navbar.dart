@@ -23,6 +23,7 @@ class BottomNavBar extends StatelessWidget {
       items: [
         const BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
         const BottomNavigationBarItem(icon: Icon(Icons.flag), label: 'Challenge'),
+        const BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 60), label:  'Add'),
         BottomNavigationBarItem(
           icon: Stack(
             children: [
@@ -44,10 +45,9 @@ class BottomNavBar extends StatelessWidget {
           ),
           label: 'Friends',
         ),
-        const BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 40), label: ''),
+
+
         const BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: 'Leaderboard'),
-        const BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Badge'),
-        const BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
     );
   }

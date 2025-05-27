@@ -37,10 +37,6 @@ class _AddScreenState extends State<AddScreen> {
   final Map<String, List<String>> baseUnits = {
     'Cardiovascular Fitness': ['Minutes', 'Distance (km)'],
     'Strength Training': [ 'Minutes', 'Sessions'],
-    'Flexibility and Mobility': ['Minutes', 'Sessions'],
-    'Sports and Recreational Activities': ['Minutes', 'Sessions'],
-    'Lifestyle Physical Activity': ['Minutes', 'Sessions'],
-    'Fitness/Medication for Specific Populations': ['Minutes', 'Sessions'],
     'Custom': ['Minutes', 'Distance (km)', 'Sessions'],
   };
 
@@ -98,7 +94,7 @@ class _AddScreenState extends State<AddScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Add New Habit', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue)),
+                  const Text('Add New Habit', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue, fontFamily: 'Montserrat')),
                   const SizedBox(height: 24),
                   _buildDropdown('Select Category', selectedCategory, categories, (val) {
                     setState(() {
@@ -209,7 +205,7 @@ class _AddScreenState extends State<AddScreen> {
                     child: ElevatedButton(
                       onPressed: _saveHabit,
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('Save Habit', style: TextStyle(fontSize: 18, color: Colors.white)),
+                      child: const Text('Save Habit', style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Montserrat')),
                     ),
                   ),
                 ],

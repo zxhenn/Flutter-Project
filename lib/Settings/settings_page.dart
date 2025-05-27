@@ -20,47 +20,47 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadProfileInfo();
+    loadUserProfile();
+    loadUserRank(); // ✅ Add this
   }
 
-  Future<void> _loadProfileInfo() async {
+  Future<void> loadUserProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final profileDoc = await FirebaseFirestore.instance
-        .collection('Profiles')
-        .doc(user.uid)
-        .get();
+    final uid = user.uid;
+    final doc = await FirebaseFirestore.instance.collection('Profiles').doc(uid).get();
 
-    final name = profileDoc.data()?['Name'] ?? 'User';
-    final email = user.email ?? '';
-    final habitsSnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('habits')
-        .get();
-
-    int totalPoints = 0;
-
-    for (var doc in habitsSnapshot.docs) {
-      final habitData = doc.data();
-      if (habitData.containsKey('points')) {
-        totalPoints += (habitData['points'] as num).toInt();
-      }
+    String name = 'User';
+    final data = doc.data();
+    if (data != null && data.containsKey('Name')) {
+      name = data['Name'];
     }
-
-    final rank = PointingSystem.getRankFromPoints(totalPoints);
-
-
 
     setState(() {
       _displayName = name;
-      _email = email;
+      _email = user.email ?? '';
+    });
+  }
+
+  Future<void> loadUserRank() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final uid = user.uid;
+
+    final int totalPoints = await PointingSystem.getTotalPoints(uid);
+    final rank = PointingSystem.getRankFromPoints(totalPoints);
+
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'rank': rank,
+    }, SetOptions(merge: true));
+
+    setState(() {
       _points = totalPoints;
+
       _rank = rank;
     });
-
-
   }
 
   @override
@@ -140,39 +140,42 @@ class _SettingsPageState extends State<SettingsPage> {
                             // 🏅 Rank Badge Image
                             Image.asset(
                               'assets/badges/${_rank.toLowerCase()}.png',
-                              height: 30,
+                              height: 60,
                               width: 50,
                               errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.emoji_events, size: 24, color: Colors.grey);
+                                return const Icon(Icons.emoji_events, size: 30, color: Colors.grey);
                               },
                             ),
-                            const SizedBox(width: 1),
+                            const SizedBox(width: 3),
 
-                            // 🔠 Rank Text
-                            Text(
-                              _rank,
-                              style: const TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            // 🔠 Rank + Points stacked
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _rank,
+                                  style: const TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Points: $_points',
+                                  style: const TextStyle(
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
 
                             const SizedBox(width: 16),
 
-                            const Icon(Icons.leaderboard, size: 18, color: Colors.deepPurple),
-                            const SizedBox(width: 4),
-
-                            // 🧮 Points
-                            Text(
-                              'Points: $_points',
-                              style: const TextStyle(
-                                fontFamily: 'Montserrat',
-                                fontSize: 16,
-                              ),
-                            ),
                           ],
                         ),
+
 
                       ],
                     ),

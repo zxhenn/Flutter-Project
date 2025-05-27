@@ -70,9 +70,11 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
   }
 
   /// Starts the appropriate tracking screen
-  void launchTracker() {
+  void launchTracker() async {
+    dynamic result;
+
     if (type == 'Running') {
-      Navigator.push(
+      result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => GPSRunningTrackerPage(
@@ -81,21 +83,20 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
             unit: unit,
           ),
         ),
-      ).then((_) => loadChallenge());
+      );
     } else if (type == 'Meditation' || type == 'Cycling') {
-      Navigator.push(
+      result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => MinutesTimerPage(
             habitId: widget.challengeId,
             targetMin: targetMin,
             targetMax: targetMax,
-
           ),
         ),
-      ).then((_) => loadChallenge());
+      );
     } else {
-      Navigator.push(
+      result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => SessionTimerPage(
@@ -104,9 +105,40 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
             targetMax: targetMax,
           ),
         ),
-      ).then((_) => loadChallenge());
+      );
     }
+
+    // ✅ Mirror update to both sender and receiver docs
+    if (result != null && result is Map && result['sessionCount'] != null) {
+      final double sessionCount = result['sessionCount'].toDouble();
+      final bool isSender = FirebaseAuth.instance.currentUser!.uid == challengeData!['senderId'];
+      final String progressField = isSender ? 'senderProgress' : 'receiverProgress';
+      final String friendId = isSender ? challengeData!['receiverId'] : challengeData!['senderId'];
+
+      final myDocRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId)
+          .collection('challenges')
+          .doc(widget.challengeId);
+
+      final friendDocRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(friendId)
+          .collection('challenges')
+          .doc(widget.challengeId);
+
+      await myDocRef.update({
+        progressField: FieldValue.increment(sessionCount),
+      });
+
+      await friendDocRef.update({
+        progressField: FieldValue.increment(sessionCount),
+      });
+    }
+
+    await loadChallenge();
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -85,6 +85,14 @@ flutter:
     - assets/badges/silver.png
     - assets/badges/bronze.png
     - assets/images/default_avatar.png
+    - assets/images/sword.png
+    - assets/boosts/cardio_charge.png
+    - assets/boosts/iron_boost.png
+    - assets/boosts/focus_boost.png
+    - assets/app_icon.png
+    - assets/app_icon2.png
+    - assets/app_icon3.png
+
   fonts:
     - family: Montserrat
       fonts:

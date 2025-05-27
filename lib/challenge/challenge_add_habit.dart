@@ -128,7 +128,7 @@ class _ChallengeAddHabitPageState extends State<ChallengeAddHabitPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF6EC),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.blueAccent,
         title: const Text("Set Challenge Habit",

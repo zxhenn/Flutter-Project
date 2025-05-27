@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ConsistencySummaryCard extends StatelessWidget {
-  const ConsistencySummaryCard({super.key});
+  final String userId;
+  const ConsistencySummaryCard({super.key, required this.userId});
 
   Future<Map<String, int>> _fetchConsistencyData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -60,7 +61,7 @@ class ConsistencySummaryCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text('$passed',
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const Text('Days passed'),
+                      const Text('Existing Days to Log'),
                     ],
                   ),
                   Column(
