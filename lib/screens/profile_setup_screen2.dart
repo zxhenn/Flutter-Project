@@ -40,7 +40,7 @@ class _ProfileSetupScreen2State extends State<ProfileSetupScreen2> {
           .update({'FocusArea': selectedFocus});
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      Navigator.pushReplacementNamed(context, '/welcome');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

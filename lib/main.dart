@@ -24,6 +24,8 @@ import 'challenge/challenge_logger_page.dart';
 import 'challenge/challenge_add_habit.dart';
 import '/Analysis/analysis_section.dart';
 import '/DashboardScreens/view_profile.dart';
+import 'main_shell_screen.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -70,6 +72,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.orange,
       ),
+      home: const MainShellScreen(),
       initialRoute: hasSeenWelcome ? '/auth' : '/welcome',
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
@@ -86,6 +89,7 @@ class MyApp extends StatelessWidget {
         '/terms': (context) => const TermsScreen(),
         '/EditProfileScreen':(context) => const EditProfileScreen(),
         '/challenge_screen':(context) => const ChallengeScreen(),
+        '/main': (context) => const MainShellScreen(),
         '/view_profile': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
           return ViewProfileScreen(userId: args['userId']);
@@ -95,24 +99,58 @@ class MyApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/challengeLogger') {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (context) => ChallengeLoggerPage(
-              challengeId: args['challengeData']['id'],
-            ),
-          );
+          // final args = settings.arguments as Map<String, dynamic>; // Keep this
+          // Ensure args is not null and is a Map before proceeding
+          if (settings.arguments is Map<String, dynamic>) {
+            final args = settings.arguments as Map<String, dynamic>;
+            // Access 'challengeId' directly from args
+            final String? challengeId = args['challengeId'] as String?; // <--- CORRECTED ACCESS
+
+            if (challengeId != null) {
+              return MaterialPageRoute(
+                builder: (context) => ChallengeLoggerPage(
+                  challengeId: challengeId,
+                ),
+              );
+            } else {
+              // Handle case where 'challengeId' is missing in arguments
+              print("Error: Navigated to /challengeLogger without a 'challengeId' in arguments.");
+              return MaterialPageRoute(builder: (_) => Scaffold(body: Center(child: Text("Error: Challenge ID missing"))));
+            }
+          } else {
+            // Handle case where arguments are not a Map or are null
+            print("Error: Navigated to /challengeLogger with invalid or no arguments.");
+            return MaterialPageRoute(builder: (_) => Scaffold(body: Center(child: Text("Error: Invalid arguments for challenge logger"))));
+          }
         }
 
         if (settings.name == '/challengeAddHabit') {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (context) => ChallengeAddHabitPage(
-              friendId: args['friendId'],
-              friendName: args['friendName'],
-            ),
-          );
-        }
+          // This part looks correct as is, assuming you pass 'friendId' and 'friendName' directly
+          if (settings.arguments is Map<String, dynamic>) {
+            final args = settings.arguments as Map<String, dynamic>;
+            final String? friendId = args['friendId'] as String?;
+            final String? friendName = args['friendName'] as String?;
 
+            if (friendId != null && friendName != null) {
+              return MaterialPageRoute(
+                builder: (context) => ChallengeAddHabitPage(
+                  friendId: friendId,
+                  friendName: friendName,
+                ),
+              );
+            } else {
+              print("Error: Navigated to /challengeAddHabit without 'friendId' or 'friendName'.");
+              return MaterialPageRoute(builder: (_) => Scaffold(body: Center(child: Text("Error: Friend details missing"))));
+            }
+          } else {
+            print("Error: Navigated to /challengeAddHabit with invalid or no arguments.");
+            return MaterialPageRoute(builder: (_) => Scaffold(body: Center(child: Text("Error: Invalid arguments for adding challenge habit"))));
+          }
+        }
+        // It's good practice to return a default error page or handle unknown routes
+        // explicitly rather than just returning null if no conditions are met.
+        // However, your MaterialApp.routes handles other routes.
+        // This return null is for onGenerateRoute when it doesn't handle the name.
         return null;
       },
 

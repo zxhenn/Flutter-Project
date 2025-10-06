@@ -58,9 +58,9 @@ class WelcomeScreen extends StatelessWidget {
                     'Track your habits and compete with friends in a fun and engaging way!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 18,
                       fontFamily: 'Montserrat',
-                      color: Colors.black87,
+                      color: Colors.black,
                     ),
                   ),
                   const Spacer(),

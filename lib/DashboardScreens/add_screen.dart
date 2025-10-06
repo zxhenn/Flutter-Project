@@ -30,7 +30,7 @@ class _AddScreenState extends State<AddScreen> {
 
   final Map<String, List<String>> typesByCategory = {
     'Cardiovascular Fitness': ['Running', 'Brisk walking', 'Cycling', 'Swimming', 'Jump rope', 'Dance or aerobic classes', 'Taking stairs'],
-    'Strength Training': ['Weightlifting', 'Push-ups', 'Squats', 'Resistance band workouts', 'CrossFit'],
+    'Strength Training': ['Weightlifting', 'Push-ups', 'Squats', 'CrossFit'],
     'Custom': [],
   };
 

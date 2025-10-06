@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'EditProfileScreen.dart';
 import '/utils/pointing_system.dart';
 import '/Analysis/analysis_screen.dart';
+import '/DashboardScreens/badge_screen.dart';
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -186,7 +188,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 32),
 
               _settingsButton(
-                icon: Icons.person,
+                icon: Icons.person_outline,
                 label: 'Edit Profile',
                 onTap: () {
                   Navigator.push(
@@ -211,12 +213,22 @@ class _SettingsPageState extends State<SettingsPage> {
                     : null,
               ),
               _settingsButton(
-                icon: Icons.newspaper,
+                icon: Icons.bar_chart_outlined,
                 label: 'Analysis',
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const AnalysisScreen()),
+                  );
+                },
+              ),
+              _settingsButton(
+                icon: Icons.workspace_premium_rounded,
+                label: 'Badges & Boosts',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BadgeScreen()),
                   );
                 },
               ),
@@ -230,7 +242,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
 
               _settingsButton(
-                icon: Icons.logout,
+                icon: Icons.logout_rounded,
                 label: 'Log out',
                 onTap: () async {
                   final confirm = await showDialog<bool>(
