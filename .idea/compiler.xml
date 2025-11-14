@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="android.cloud_firestore" target="17" />
+      <module name="android.firebase_auth" target="17" />
+      <module name="android.flutter_local_notifications" target="17" />
+      <module name="android.google_sign_in_android" target="17" />
+      <module name="android.path_provider_android" target="17" />
+      <module name="android.shared_preferences_android" target="17" />
+      <module name="android.twitter_login" target="17" />
+      <module name="com.dexterous.flutterlocalnotifications.android.flutter_local_notifications" target="17" />
+      <module name="dev.fluttercommunity.plus.device_info.android.device_info_plus" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
