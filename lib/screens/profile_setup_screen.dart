@@ -53,7 +53,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     // Basic username validation (you can make this stricter)
     if (!RegExp(r"^[a-zA-Z0-9_]{3,20}$").hasMatch(trimmedUsername)) {
       setState(() {
-        _usernameStatus = '❌ Invalid (3-20 chars, a-z, 0-9, _)';
+        _usernameStatus = 'Invalid (3-20 chars, a-z, 0-9, _)';
         _usernameStatusColor = Colors.red;
         _isCheckingUsername = false;
       });
@@ -81,7 +81,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final isTaken = query.docs.any((doc) => doc.id != currentUserId);
 
       setState(() {
-        _usernameStatus = isTaken ? '❌ Username taken' : '✅ Username available';
+        _usernameStatus = isTaken ? 'Username taken' : 'Username available';
         _usernameStatusColor = isTaken ? Colors.red : Colors.green;
         _isCheckingUsername = false;
       });
@@ -129,7 +129,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     if (nameCheck.docs.isNotEmpty && nameCheck.docs.first.id != user.uid) {
       setState(() { // Update UI if somehow it got taken between check and save
-        _usernameStatus = '❌ Username taken';
+        _usernameStatus = 'Username taken';
         _usernameStatusColor = Colors.red;
       });
       ScaffoldMessenger.of(context).showSnackBar(
