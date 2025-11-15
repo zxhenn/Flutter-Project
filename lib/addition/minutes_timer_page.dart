@@ -580,91 +580,72 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> with WidgetsBinding
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: OutlinedButton.icon(
                     onPressed: _showDiscardDialog,
+                    icon: Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text(
+                      'Discard',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red[700],
                       side: BorderSide(color: Colors.red.shade300!),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.cancel_outlined, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Discard',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: _startStopTimer,
+                    icon: Icon(
+                      _isRunning ? Icons.stop : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _isRunning ? 'Stop' : 'Start',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _isRunning ? Colors.red[600] : Colors.blue[700],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 2,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _isRunning ? Icons.stop : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _isRunning ? 'Stop' : 'Start',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton(
+                  child: OutlinedButton.icon(
                     onPressed: (_totalElapsedSeconds > 0 || _lapTimesInSeconds.isNotEmpty) ? _saveAndExit : null,
+                    icon: Icon(Icons.save, size: 18),
+                    label: const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.blue[700],
                       side: BorderSide(color: Colors.blue.shade300!),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.save, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),

@@ -309,18 +309,48 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    if (_isLoading && _challengeData == null) { // Show loading only on initial load
+    if (_isLoading && _challengeData == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Challenge Tracker'), elevation: 0),
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.grey[50],
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Challenge Tracker',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_challengeData == null) { // Should be handled by listener pop, but as a fallback
+    if (_challengeData == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Challenge Tracker'), elevation: 0),
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.grey[50],
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Challenge Tracker',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+        ),
         body: const Center(child: Text('Challenge data not available.')),
       );
     }
@@ -333,65 +363,114 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
         : "Ended")
         : "Date N/A";
 
-
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(_habitType, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.grey[50],
         elevation: 0,
-        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          _habitType,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
+        ),
         actions: [
-          if (_isChallengePeriodOver && _status == 'active') // Show refresh if period is over but status not terminal
-            IconButton(icon: Icon(Icons.refresh), onPressed: () => _updateProgress(0.0) ) // Force status re-evaluation
+          if (_isChallengePeriodOver && _status == 'active')
+            IconButton(
+              icon: Icon(Icons.refresh, color: Colors.grey[900]),
+              onPressed: () => _updateProgress(0.0),
+            ),
         ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildChallengeInfoCard(theme, timeRemaining),
-              const SizedBox(height: 20),
-              _buildProgressCard(theme, "Your Progress", _myProgress, _targetMax, _unit, theme.colorScheme.primary),
+              _buildChallengeInfoCard(timeRemaining),
+              const SizedBox(height: 24),
+              _buildProgressCard("Your Progress", _myProgress, _targetMax, _unit, Colors.blue[700]!),
               const SizedBox(height: 16),
-              _buildProgressCard(theme, "${_friendName}'s Progress", _friendProgress, _targetMax, _unit, theme.colorScheme.secondary),
-              const SizedBox(height: 30),
+              _buildProgressCard("${_friendName}'s Progress", _friendProgress, _targetMax, _unit, Colors.green[700]!),
+              const SizedBox(height: 32),
 
-              if (_isLoading && _challengeData != null) // Show loading indicator for updates
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: CircularProgressIndicator(strokeWidth: 2.0,),
-                )),
-
+              if (_isLoading && _challengeData != null)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(strokeWidth: 2.0),
+                  ),
+                ),
 
               if (canTrackNow)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.play_circle_fill_rounded, size: 28),
-                  label: const Text("Track Now", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  onPressed: _isLoading ? null : _launchTracker,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _launchTracker,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 24),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Track Now",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               else if (_canClaimPrize)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.emoji_events_rounded, size: 28),
-                  label: const Text("Claim Your Prize!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  onPressed: _isLoading ? null : _claimPrize,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber[700],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _claimPrize,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber[700],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.star, color: Colors.white, size: 24),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Claim Your Prize!",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               else
-                _buildStatusDisplay(theme), // Show challenge status if not tracking or claiming
+                _buildStatusDisplay(),
 
               const SizedBox(height: 20),
             ],
@@ -401,113 +480,241 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
     );
   }
 
-  Widget _buildChallengeInfoCard(ThemeData theme, String timeRemaining) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.flag_circle_outlined, color: theme.colorScheme.primary, size: 24),
-                const SizedBox(width: 8),
-                Text("Challenge vs. $_friendName", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text("Habit: $_habitType", style: theme.textTheme.bodyLarge),
-            Text("Target: $_targetMin-$_targetMax $_unit", style: theme.textTheme.bodyLarge),
-            if (_createdAt != null)
-              Text("Ends: ${DateFormat.yMMMd().add_jm().format(_createdAt!.toDate().add(Duration(days: _durationDays)))}", style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 8),
-            Chip(
-              label: Text(timeRemaining, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              backgroundColor: DateTime.now().isBefore(_createdAt!.toDate().add(Duration(days: _durationDays)))
-                  ? theme.colorScheme.secondary
-                  : Colors.grey[600],
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            )
-          ],
-        ),
+  Widget _buildChallengeInfoCard(String timeRemaining) {
+    final isActive = DateTime.now().isBefore(_createdAt!.toDate().add(Duration(days: _durationDays)));
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildProgressCard(ThemeData theme, String title, num currentProgress, num targetMax, String unit, Color progressColor) {
-    double progressValue = (targetMax > 0) ? (currentProgress / targetMax).clamp(0.0, 1.0) : 0.0;
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "${currentProgress.toStringAsFixed(unit == 'km' ? 2:0)} / ${targetMax.toStringAsFixed(0)} $unit",
-                  style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                Text("${(progressValue * 100).toStringAsFixed(0)}%", style: theme.textTheme.bodyMedium?.copyWith(color: progressColor)),
+                child: Icon(Icons.flag, color: Colors.blue[700], size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Challenge vs. $_friendName",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _habitType,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.track_changes_outlined, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Target: $_targetMin-$_targetMax $_unit",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                  ],
+                ),
+                if (_createdAt != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Ends: ${DateFormat.yMMMd().add_jm().format(_createdAt!.toDate().add(Duration(days: _durationDays)))}",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progressValue,
-                minHeight: 12,
-                backgroundColor: progressColor.withOpacity(0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-              ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.blue.shade50 : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
-        ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isActive ? Icons.timer : Icons.check_circle,
+                  size: 16,
+                  color: isActive ? Colors.blue[700] : Colors.grey[700],
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  timeRemaining,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isActive ? Colors.blue[700] : Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatusDisplay(ThemeData theme) {
+  Widget _buildProgressCard(String title, num currentProgress, num targetMax, String unit, Color progressColor) {
+    double progressValue = (targetMax > 0) ? (currentProgress / targetMax).clamp(0.0, 1.0) : 0.0;
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "${currentProgress.toStringAsFixed(unit == 'km' ? 2 : 0)} / ${targetMax.toStringAsFixed(0)} $unit",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[900],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: progressColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "${(progressValue * 100).toStringAsFixed(0)}%",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: progressColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: LinearProgressIndicator(
+              value: progressValue,
+              minHeight: 16,
+              backgroundColor: progressColor.withOpacity(0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusDisplay() {
     String statusText = "Challenge Ended";
-    IconData statusIcon = Icons.check_circle_outline_rounded;
+    IconData statusIcon = Icons.check_circle_outline;
     Color statusColor = Colors.green;
 
     switch (_status) {
       case 'pending':
         statusText = 'Challenge pending acceptance.';
-        statusIcon = Icons.hourglass_empty_rounded;
+        statusIcon = Icons.hourglass_empty;
         statusColor = Colors.orange;
         break;
-      case 'active': // Should not reach here if canTrackNow is false and canClaimPrize is false
+      case 'active':
         statusText = _myProgress >= _targetMax ? "You've reached the target!" : "Challenge is active.";
-        statusIcon = _myProgress >= _targetMax ? Icons.star_rounded : Icons.directions_run_rounded;
-        statusColor = _myProgress >= _targetMax ? Colors.amber.shade700 : theme.colorScheme.primary;
+        statusIcon = _myProgress >= _targetMax ? Icons.star : Icons.directions_run;
+        statusColor = _myProgress >= _targetMax ? Colors.amber.shade700! : Colors.blue[700]!;
         break;
       case 'declined':
         statusText = 'Challenge declined by friend.';
-        statusIcon = Icons.cancel_rounded;
+        statusIcon = Icons.cancel;
         statusColor = Colors.red;
         break;
       case 'completed_won':
         statusText = 'You won this challenge! 🎉';
-        statusIcon = Icons.emoji_events_rounded;
-        statusColor = Colors.amber.shade700;
+        statusIcon = Icons.star;
+        statusColor = Colors.amber.shade700!;
         break;
       case 'completed_lost':
         statusText = 'Challenge completed. Better luck next time!';
-        statusIcon = Icons.sentiment_satisfied_alt_rounded;
-        statusColor = theme.colorScheme.secondary;
+        statusIcon = Icons.sentiment_satisfied_alt;
+        statusColor = Colors.green[700]!;
         break;
       case 'completed_draw':
         statusText = 'Challenge ended in a draw!';
-        statusIcon = Icons.handshake_rounded;
+        statusIcon = Icons.handshake;
         statusColor = Colors.blueGrey;
         break;
       default:
@@ -517,28 +724,39 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
           } else {
             statusText = 'Prize claimed by ${_friendName}.';
           }
-          statusIcon = Icons.redeem_rounded;
+          statusIcon = Icons.redeem;
           statusColor = Colors.purple;
         } else {
           statusText = 'Challenge status: $_status';
-          statusIcon = Icons.info_outline_rounded;
+          statusIcon = Icons.info_outline;
           statusColor = Colors.grey;
         }
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: statusColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        border: Border.all(
+          color: statusColor.withOpacity(0.3),
+          width: 1,
+        ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(statusIcon, color: statusColor, size: 28),
+          Icon(statusIcon, color: statusColor, size: 24),
           const SizedBox(width: 12),
-          Expanded(child: Text(statusText, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: statusColor))),
+          Expanded(
+            child: Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: statusColor,
+              ),
+            ),
+          ),
         ],
       ),
     );
