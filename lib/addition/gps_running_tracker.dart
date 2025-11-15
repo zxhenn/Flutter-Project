@@ -302,113 +302,10 @@ class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> with Widg
   // --- Main Build Method ---
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // In the build method, for the canRecordLap condition:
     final bool canRecordLap = _isTracking &&
         !_isPausedDueToSpeed &&
-        (_lapStopwatch.elapsed.inSeconds > 0 || _currentLapDistanceKm > 0.001); // CORRECTED HERE
+        (_lapStopwatch.elapsed.inSeconds > 0 || _currentLapDistanceKm > 0.001);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('GPS Run Tracker'),
-        elevation: 1,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // --- Target Display ---
-            _buildTargetDisplayCard(theme),
-            const SizedBox(height: 15),
-
-            // --- Main Stats Card (Distance, Time, Speed) ---
-            _buildMainStatsCard(theme),
-            if (_isPausedDueToSpeed)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text('Tracking paused (low speed / vehicle)', style: TextStyle(color: Colors.orange[700], fontStyle: FontStyle.italic)),
-              ),
-            const SizedBox(height: 15),
-
-
-            // --- Current Lap Info & Lap Button ---
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('LAP $_currentLapNumber', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        Text(
-                          '${_currentLapDistanceKm.toStringAsFixed(2)} km',
-                          style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.secondary),
-                        ),
-                        Text(
-                          _formatDuration(_lapStopwatch.elapsed.inSeconds),
-                          style: theme.textTheme.titleSmall?.copyWith(color: Colors.grey[700]),
-                        ),
-                      ],
-                    ),
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.flag_circle_outlined, color: canRecordLap ? Colors.white : Colors.grey[400]),
-                      label: Text('Lap', style: TextStyle(color: canRecordLap ? Colors.white : Colors.grey[400])),
-                      onPressed: canRecordLap ? _recordLap : null,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: canRecordLap ? theme.colorScheme.secondary : Colors.grey[300],
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10)
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Divider(),
-
-            // --- Lap List ---
-            Text('Completed Laps', style: theme.textTheme.titleSmall?.copyWith(color: Colors.grey[600])),
-            Expanded(
-              child: _completedLaps.isEmpty
-                  ? Center(child: Text('No laps recorded yet.', style: TextStyle(color: Colors.grey[600])))
-                  : ListView.builder(
-                itemCount: _completedLaps.length,
-                itemBuilder: (context, index) {
-                  final lapData = _completedLaps.reversed.toList()[index]; // Newest first
-                  final lapNumber = _completedLaps.length - index;
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    elevation: 1,
-                    child: ListTile(
-                      dense: true,
-                      leading: CircleAvatar(
-                          radius: 12,
-                          backgroundColor: theme.colorScheme.secondaryContainer.withOpacity(0.5),
-                          child: Text('$lapNumber', style: TextStyle(fontSize: 10, color: theme.colorScheme.onSecondaryContainer, fontWeight: FontWeight.bold))),
-                      title: Text('${lapData.distanceKm.toStringAsFixed(2)} km', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-                      trailing: Text(_formatDuration(lapData.timeSeconds), style: theme.textTheme.bodyMedium),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const Divider(),
-            const SizedBox(height: 10),
-
-            // --- Action Buttons ---
-            _buildActionButtons(theme),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- UI Helper Widgets ---
-  Widget _buildTargetDisplayCard(ThemeData theme) {
     String targetDisplay = "N/A";
     if (widget.unit.toLowerCase() == 'distance (km)' && widget.target is num) {
       targetDisplay = "${(widget.target as num).toStringAsFixed(1)} km";
@@ -416,117 +313,453 @@ class _GPSRunningTrackerPageState extends State<GPSRunningTrackerPage> with Widg
       targetDisplay = widget.target;
     }
 
-    return Card(
-      elevation: 0,
-      color: Colors.transparent,
-      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.track_changes_outlined, color: Colors.grey[600], size: 18),
-            const SizedBox(width: 8),
-            Text('Target: ', style: theme.textTheme.labelLarge?.copyWith(color: Colors.grey[700])),
-            Text(targetDisplay, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-          ],
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: Colors.grey[50],
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+          onPressed: () => Navigator.pop(context, null),
+        ),
+        title: Text(
+          'GPS Run Tracker',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildMainStatsCard(ThemeData theme) {
-    return Card(
-      elevation: 4,
-      color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Distance', style: theme.textTheme.titleSmall),
-                    Text(
-                      '${_totalDistanceKm.toStringAsFixed(2)} km',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+            // Target Display
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.track_changes_outlined, color: Colors.grey[600], size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Target: ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  Text(
+                    targetDisplay,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[900],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Main Stats Card
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text(
+                            'Distance',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '${_totalDistanceKm.toStringAsFixed(2)} km',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        width: 1,
+                        height: 60,
+                        color: Colors.grey.shade300,
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            'Time',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _formatDuration(_mainStopwatch.elapsed.inSeconds),
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[700],
+                              fontFeatures: [const FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Speed: ${_currentSpeedKmh.toStringAsFixed(1)} km/h',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Inactive: ${_formatDuration(_totalInactiveSeconds)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_isPausedDueToSpeed) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.orange.shade200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.pause_circle_outline, size: 16, color: Colors.orange[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tracking paused (low speed / vehicle)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.orange[800],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Current Lap Info
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'LAP $_currentLapNumber',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_currentLapDistanceKm.toStringAsFixed(2)} km',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatDuration(_lapStopwatch.elapsed.inSeconds),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: canRecordLap ? _recordLap : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.flag,
+                          size: 18,
+                          color: canRecordLap ? Colors.white : Colors.grey[400],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Lap',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: canRecordLap ? Colors.white : Colors.grey[400],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Completed Laps
+            if (_completedLaps.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                SizedBox(
-                    height: 50,
-                    child: VerticalDivider(color: Colors.grey[400])),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Time', style: theme.textTheme.titleSmall),
                     Text(
-                      _formatDuration(_mainStopwatch.elapsed.inSeconds),
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                      'Completed Laps',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
                     ),
+                    const SizedBox(height: 12),
+                    ...(_completedLaps.reversed.toList().asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final lapData = entry.value;
+                      final lapNumber = _completedLaps.length - index;
+                      return Container(
+                        margin: EdgeInsets.only(bottom: index < _completedLaps.length - 1 ? 8 : 0),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '$lapNumber',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '${lapData.distanceKm.toStringAsFixed(2)} km',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[900],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              _formatDuration(lapData.timeSeconds),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    })),
                   ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showDiscardDialog,
+                    icon: Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text(
+                      'Discard',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red[700],
+                      side: BorderSide(color: Colors.red.shade300!),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _toggleTracking,
+                    icon: Icon(
+                      _isTracking ? Icons.stop : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _isTracking ? 'Stop' : 'Start',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isTracking ? Colors.red[600] : Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: (_totalDistanceKm > 0 || _completedLaps.isNotEmpty) ? _saveAndExit : null,
+                    icon: Icon(Icons.save, size: 18),
+                    label: const Text(
+                      'Save',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue[700],
+                      side: BorderSide(color: Colors.blue.shade300!),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Text('Speed: ${_currentSpeedKmh.toStringAsFixed(1)} km/h', style: theme.textTheme.bodySmall),
-                Text('Inactive: ${_formatDuration(_totalInactiveSeconds)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange[800])),
-              ],
-            )
+            const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.cancel_outlined),
-            label: const Text('Discard'),
-            onPressed: _showDiscardDialog,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red[700],
-              side: BorderSide(color: Colors.red[300]!),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-          ),
-          ElevatedButton.icon(
-            icon: _isTracking ? const Icon(CupertinoIcons.stop_fill) : const Icon(CupertinoIcons.play_arrow_solid),
-            label: Text(_isTracking ? 'Stop' : 'Start', style: TextStyle(fontSize: 16)),
-            onPressed: _toggleTracking,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isTracking ? Colors.redAccent : theme.colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.save_alt_outlined),
-            label: const Text('Save'),
-            onPressed: (_totalDistanceKm > 0 || _completedLaps.isNotEmpty) ? _saveAndExit : null,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.primary,
-              side: BorderSide(color: theme.colorScheme.primary),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-          ),
-        ],
       ),
     );
   }

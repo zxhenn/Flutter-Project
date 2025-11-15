@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/cupertino.dart'; // For Cupertino icons if desired
 
 class SessionTimerPage extends StatefulWidget {
   final String habitId;
@@ -167,168 +166,275 @@ class _SessionTimerPageState extends State<SessionTimerPage> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final elapsedSeconds = _stopwatch.elapsed.inSeconds;
     final bool hasProgress = elapsedSeconds > 0;
-    final bool canSave = !_isRunning && hasProgress;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Session Timer'),
-        elevation: 1,
-        // backgroundColor: theme.scaffoldBackgroundColor,
-        // foregroundColor: theme.textTheme.titleLarge?.color,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Pushes controls to bottom
-          children: [
-            Column( // Group for timer and targets
-              children: [
-                _buildTargetDisplay(theme),
-                const SizedBox(height: 40),
-                _buildTimerDisplay(theme, elapsedSeconds),
-              ],
-            ),
-            _buildControlButtons(theme, canSave, hasProgress),
-          ],
+        backgroundColor: Colors.grey[50],
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+          onPressed: () => Navigator.pop(context, null),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTargetDisplay(ThemeData theme) {
-    // Assuming targetMin/Max are session counts for this habit type
-    String minTargetDisplay = widget.targetMin is num ? (widget.targetMin as num).toStringAsFixed(0) : "N/A";
-    String maxTargetDisplay = widget.targetMax is num ? (widget.targetMax as num).toStringAsFixed(0) : "N/A";
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Column(
-              children: [
-                Text('Min Sessions', style: theme.textTheme.labelLarge?.copyWith(color: Colors.grey[700])),
-                Text(minTargetDisplay, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            Column(
-              children: [
-                Text('Max Sessions', style: theme.textTheme.labelLarge?.copyWith(color: Colors.grey[700])),
-                Text(maxTargetDisplay, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimerDisplay(ThemeData theme, int elapsedSeconds) {
-    return Column(
-      children: [
-        Text(
-          'Session Duration',
-          style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[800]),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _formatDuration(elapsedSeconds),
-          style: theme.textTheme.displayLarge?.copyWith(
+        title: Text(
+          'Session Timer',
+          style: TextStyle(
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: theme.colorScheme.primary,
-            fontFeatures: [const FontFeature.tabularFigures()], // For stable digit width
+            color: Colors.grey[900],
           ),
         ),
-      ],
-    );
-  }
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Target Display Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        'Min Sessions',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.targetMin is num ? (widget.targetMin as num).toStringAsFixed(0) : "N/A",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    width: 1,
+                    height: 50,
+                    color: Colors.grey.shade300,
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        'Max Sessions',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.targetMax is num ? (widget.targetMax as num).toStringAsFixed(0) : "N/A",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
 
-  Widget _buildControlButtons(ThemeData theme, bool canSave, bool hasProgress) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0), // Add some padding from bottom edge
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!_isRunning && !hasProgress) // Initial state: Only show Start
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(CupertinoIcons.play_arrow_solid, size: 28),
-                label: const Text('Start Session', style: TextStyle(fontSize: 18)),
-                onPressed: _toggleTimer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+            // Timer Display Card
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ),
-          if (_isRunning) // Running state: Only show Stop
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(CupertinoIcons.stop_fill, size: 28),
-                label: const Text('Stop Session', style: TextStyle(fontSize: 18)),
-                onPressed: _toggleTimer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-          if (!_isRunning && hasProgress) // Stopped with progress: Show Save & Discard/Reset
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Reset'),
-                    onPressed: _resetTimer,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.secondary,
-                      side: BorderSide(color: theme.colorScheme.secondary.withOpacity(0.7)),
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                children: [
+                  Text(
+                    'Session Duration',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.save_alt_outlined),
-                    label: const Text('Save'),
-                    onPressed: _showSaveOrDiscardDialog, // This will handle the dialog
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 16),
+                  Text(
+                    _formatDuration(elapsedSeconds),
+                    style: TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                      fontFeatures: [const FontFeature.tabularFigures()],
                     ),
                   ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 16),
-          // Always show an exit button if not running, or if it's the initial state
-          if (!_isRunning)
-            TextButton(
-              onPressed: () => Navigator.pop(context, null), // Discard and exit
-              child: Text(
-                hasProgress ? 'Exit Without Saving' : 'Cancel',
-                style: TextStyle(color: Colors.grey[600]),
+                ],
               ),
-            )
-        ],
+            ),
+            const SizedBox(height: 32),
+
+            // Control Buttons
+            if (!_isRunning && !hasProgress)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _toggleTimer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.play_arrow, color: Colors.white, size: 24),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Start Session',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_isRunning)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _toggleTimer,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600],
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.stop, color: Colors.white, size: 24),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Stop Session',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (!_isRunning && hasProgress)
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _resetTimer,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.grey[700],
+                            side: BorderSide(color: Colors.grey.shade300!),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.refresh, size: 20, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Reset',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _showSaveOrDiscardDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[700],
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.save, color: Colors.white, size: 20),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Save',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, null),
+                    child: Text(
+                      'Exit Without Saving',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

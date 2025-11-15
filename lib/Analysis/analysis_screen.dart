@@ -128,34 +128,59 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     if (mounted) setState(() => logCounts = counts);
   }
 
-  Widget _buildSectionCard({required String title, required Widget child, EdgeInsets? padding}) {
-    return Card(
-      elevation: 2.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      margin: const EdgeInsets.only(bottom: 20.0),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+  Widget _buildSectionCard({required String title, required Widget child, IconData? titleIcon, EdgeInsets? padding}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: padding ?? const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (titleIcon != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(titleIcon, color: Colors.blue[700], size: 20),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[900],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
       ),
     );
   }
 
   Widget _buildWeeklyLogBarChart(ThemeData theme) {
     double maxY = logCounts.isEmpty ? 5 : (logCounts.reduce((a, b) => a > b ? a : b) + 2);
-    if (maxY < 5) maxY = 5; // Ensure a minimum height for the y-axis
+    if (maxY < 5) maxY = 5;
 
     return BarChart(
       BarChartData(
@@ -164,7 +189,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         barTouchData: BarTouchData(
           enabled: true,
           touchTooltipData: BarTouchTooltipData(
-            tooltipBgColor: Colors.blueGrey.withOpacity(0.8),
+            tooltipBgColor: Colors.blue[700]!.withOpacity(0.9),
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               String weekDay = weekDays[group.x.toInt()];
               return BarTooltipItem(
@@ -173,13 +198,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 children: <TextSpan>[
                   TextSpan(
                     text: (rod.toY - rod.fromY).toInt().toString(),
-                    style: TextStyle(
-                      color: theme.colorScheme.surface, // Or Colors.yellow
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const TextSpan(text: ' logs', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  const TextSpan(text: ' logs', style: TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               );
             },
@@ -195,20 +220,33 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                 if (index < 0 || index >= weekDays.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6.0),
-                  child: Text(weekDays[index], style: TextStyle(fontSize: 11, color: Colors.grey[700])),
+                  child: Text(
+                    weekDays[index],
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 );
               },
-              reservedSize: 28,
+              reservedSize: 32,
             ),
           ),
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 36,
-              interval: maxY ~/ 5 > 0 ? (maxY ~/ 5).toDouble() : 1, // Dynamic interval
+              reservedSize: 40,
+              interval: maxY ~/ 5 > 0 ? (maxY ~/ 5).toDouble() : 1,
               getTitlesWidget: (value, meta) {
-                if (value == 0 || value == meta.max) return const SizedBox.shrink(); // Avoid clutter at edges
-                return Text(value.toInt().toString(), style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                if (value == 0 || value == meta.max) return const SizedBox.shrink();
+                return Text(
+                  value.toInt().toString(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                );
               },
             ),
           ),
@@ -221,7 +259,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           drawVerticalLine: false,
           horizontalInterval: maxY ~/ 5 > 0 ? (maxY ~/ 5).toDouble() : 1,
           getDrawingHorizontalLine: (value) {
-            return FlLine(color: Colors.grey.shade300, strokeWidth: 0.5);
+            return FlLine(color: Colors.grey.shade200, strokeWidth: 1);
           },
         ),
         barGroups: List.generate(7, (i) {
@@ -229,14 +267,13 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             x: i,
             barRods: [
               BarChartRodData(
-                  toY: logCounts[i],
-                  width: 18,
-                  color: theme.colorScheme.primary.withOpacity(0.8),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(6),
-                    topRight: Radius.circular(6),
-                  ),
-                  borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.0)
+                toY: logCounts[i],
+                width: 20,
+                color: Colors.blue[700],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
+                ),
               ),
             ],
             showingTooltipIndicators: [],
@@ -246,61 +283,132 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
-  Widget _buildStatsDisplay(ThemeData theme) {
+  Widget _buildStatsDisplay() {
     double consistency = (daysPassed > 0 && daysLogged > 0) ? (daysLogged / daysPassed * 100) : 0.0;
     Color consistencyColor = Colors.grey;
     if (consistency >= 75) consistencyColor = Colors.green;
     else if (consistency >= 50) consistencyColor = Colors.orange;
     else if (consistency > 0) consistencyColor = Colors.red;
 
-
     return Column(
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItem(theme, "Days Logged", daysLogged.toString(), Icons.event_available_outlined),
-            _buildStatItem(theme, "Days Passed", daysPassed.toString(), Icons.timelapse_outlined),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.event_available, color: Colors.blue[700], size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      daysLogged.toString(),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Days Logged",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.timelapse, color: Colors.green[700], size: 28),
+                    const SizedBox(height: 8),
+                    Text(
+                      daysPassed.toString(),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Days Passed",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 20),
-        if(selectedHabitData != null) ...[
-          Text("Consistency", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
+        if (selectedHabitData != null) ...[
+          const SizedBox(height: 24),
+          Text(
+            "Consistency",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+          const SizedBox(height: 16),
           Stack(
             alignment: Alignment.center,
             children: [
               SizedBox(
-                height: 100, width: 100,
+                height: 120,
+                width: 120,
                 child: CircularProgressIndicator(
                   value: consistency / 100,
-                  strokeWidth: 8,
-                  backgroundColor: Colors.grey[300],
+                  strokeWidth: 10,
+                  backgroundColor: Colors.grey.shade200,
                   valueColor: AlwaysStoppedAnimation<Color>(consistencyColor),
                 ),
               ),
-              Text("${consistency.toStringAsFixed(0)}%", style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: consistencyColor)),
+              Column(
+                children: [
+                  Text(
+                    "${consistency.toStringAsFixed(0)}%",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: consistencyColor,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    selectedHabitData!['type'] ?? 'Habit',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            selectedHabitData!['type'] ?? 'Habit Analysis',
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
-            textAlign: TextAlign.center,
-          ),
-        ]
-      ],
-    );
-  }
-
-  Widget _buildStatItem(ThemeData theme, String label, String value, IconData icon) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 28, color: theme.colorScheme.secondary),
-        const SizedBox(height: 6),
-        Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+        ],
       ],
     );
   }
@@ -311,21 +419,76 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Analysis"), elevation: 0, backgroundColor: Colors.transparent),
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.grey[50],
+          elevation: 0,
+          title: Text(
+            "Analysis",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (allHabits.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Analysis"), elevation: 0, backgroundColor: Colors.transparent),
+        backgroundColor: Colors.grey[50],
+        appBar: AppBar(
+          backgroundColor: Colors.grey[50],
+          elevation: 0,
+          title: Text(
+            "Analysis",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
+            ),
+          ),
+        ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Text(
-              "No habits found to analyze.\nStart by adding some habits!",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
+            padding: const EdgeInsets.all(40.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.analytics_outlined,
+                    size: 64,
+                    color: Colors.blue[700],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  "No Habits Found",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Start by adding some habits to analyze!",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ),
@@ -333,36 +496,48 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background for the whole screen
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text("Habit Analysis", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.grey[50],
         elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: theme.colorScheme.primary),
-        titleTextStyle: TextStyle(color: theme.textTheme.titleLarge?.color, fontSize: 20, fontWeight: FontWeight.bold),
+        title: Text(
+          "Habit Analysis",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
+        ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView( // Make the whole screen scrollable
-          padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Potentially your TopHeader here if it's different from AppBar
-              // const TopHeader(),
-              // const SizedBox(height: 16),
-
+              // Habit Selector
               _buildSectionCard(
-                title: "Habit Selector",
-                padding: const EdgeInsets.symmetric(horizontal:16, vertical: 12),
+                title: "Select Habit",
+                titleIcon: Icons.analytics_outlined,
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
                   value: selectedHabitId,
                   decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.9),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14)
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   hint: const Text("Select a habit to analyze"),
                   items: allHabits.map((habit) {
@@ -386,24 +561,44 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               if (selectedHabitId != null && selectedHabitData != null) ...[
                 _buildSectionCard(
                   title: "Weekly Log Count",
+                  titleIcon: Icons.bar_chart,
                   child: AspectRatio(
-                    aspectRatio: 1.6, // Adjusted for potentially taller chart due to y-axis labels
+                    aspectRatio: 1.6,
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 16.0, right: 8.0), // Padding for chart
+                      padding: const EdgeInsets.only(top: 16.0, right: 8.0),
                       child: _buildWeeklyLogBarChart(theme),
                     ),
                   ),
                 ),
                 _buildSectionCard(
                   title: "Habit Statistics",
-                  child: _buildStatsDisplay(theme),
+                  titleIcon: Icons.trending_up,
+                  child: _buildStatsDisplay(),
                 ),
               ] else if (selectedHabitId != null && selectedHabitData == null) ...[
-                // This case might occur if a selected habit was deleted or data is inconsistent
-                const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Center(child: Text("Selected habit data not found.")),
-                )
+                Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      "Selected habit data not found.",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ],
           ),
