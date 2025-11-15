@@ -32,6 +32,10 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
   bool isComplete = false;
   int? sessionDuration; // for session time display
 
+  double _round1(double value) {
+    return double.parse(value.toStringAsFixed(1));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -280,9 +284,10 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
             Text(
               unit == 'Minutes'
                   ? _formatDuration(todayProgress.toInt()) + ' / ' + _formatDuration(targetMax.toInt())
-                  : '$todayProgress / $targetMax $unit',
+                  : '${_round1(todayProgress)} / ${_round1(targetMax)} $unit',
               style: const TextStyle(fontSize: 18),
             ),
+
 
             if (sessionDuration != null)
               Padding(
