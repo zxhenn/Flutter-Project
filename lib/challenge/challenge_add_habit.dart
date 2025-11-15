@@ -38,37 +38,50 @@ class _ChallengeAddHabitPageState extends State<ChallengeAddHabitPage> {
     'Journaling',
     // Add more common types
   ];
+  static const Map<String, List<String>> habitTypeUnitMap = {
+    'Running': ['Distance (km)', 'Minutes', 'Sessions'],
+    'Cycling': ['Distance (km)', 'Minutes', 'Sessions'],
+    'Weightlifting': ['Sets', 'Reps', 'Minutes', 'Sessions'],
+    'Yoga': ['Minutes', 'Sessions'],
+    'Meditation': ['Minutes', 'Sessions'],
+    'Reading': ['Pages', 'Minutes', 'Sessions'],
+    'Journaling': ['Pages', 'Minutes', 'Sessions'],
+    // add other types here — keep this map synced with your habit logger code
+  };
 
-  // Initialize selectedUnit based on the default selectedType
+  late final List<String> _habitTypesList; // derived from the map
+
+  List<String> _getUnitOptionsForType(String type) {
+    return habitTypeUnitMap[type] ?? ['Sessions'];
+  }
+
+// in initState:
   @override
   void initState() {
     super.initState();
+    _habitTypesList = habitTypeUnitMap.keys.toList();
+    // ensure _selectedType is a valid type; if not, pick first from list
+    if (!_habitTypesList.contains(_selectedType)) {
+      _selectedType = _habitTypesList.isNotEmpty ? _habitTypesList.first : 'Sessions';
+    }
     _selectedUnit = _getUnitOptionsForType(_selectedType).first;
   }
+  // Initialize selectedUnit based on the default selectedType
 
-  List<String> _getUnitOptionsForType(String type) {
-    switch (type) {
-      case 'Running':
-      case 'Cycling':
-        return ['Distance (km)', 'Minutes', 'Sessions'];
-              case 'Weightlifting':// Example, reading might be pages or minutes
-      default:
-        return ['Sessions']; // Default unit
-    }
-  }
+
 
   Future<void> _submitChallenge() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
+    // authoritative numeric validation
     if (_minTarget <= 0 || _maxTarget <= 0 || _duration <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Targets and duration must be positive numbers.")),
       );
       return;
     }
     if (_minTarget > _maxTarget) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Min target cannot be greater than max target.")),
       );
       return;
@@ -91,7 +104,7 @@ class _ChallengeAddHabitPageState extends State<ChallengeAddHabitPage> {
           .collection('users')
           .doc(currentUser.uid)
           .collection('challenges')
-          .where('status', whereIn: ['pending', 'active', 'completed']) // Consider only relevant statuses
+          .where('status', whereIn: ['pending', 'active']) // don't block on completed
           .get();
 
       final hasActiveChallengeWithFriend = allChallenges.docs.any((doc) {
@@ -240,12 +253,9 @@ class _ChallengeAddHabitPageState extends State<ChallengeAddHabitPage> {
                   child: DropdownButtonFormField<String>(
                     value: _selectedType,
                     decoration: _inputDecoration(hint: "Select Habit Type"),
-                    items: _habitTypes
-                        .map((type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(type),
-                    ))
-                        .toList(),
+                      items: _habitTypesList
+                          .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                          .toList(),
                     onChanged: (val) {
                       if (val != null) {
                         final newUnitOptions = _getUnitOptionsForType(val);
