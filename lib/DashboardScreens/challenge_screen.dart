@@ -143,35 +143,52 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
   }
 
   Widget _buildFriendCard(Map<String, dynamic> friendData) {
-    final theme = Theme.of(context);
     final String friendUid = friendData['uid'];
     final Map<String, dynamic>? challenge = _friendChallenges[friendUid];
     final bool isLoadingThisFriendChallenge = _isLoadingChallenges && !_friendChallenges.containsKey(friendUid);
 
-    return Card(
-      elevation: 3.0,
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-      color: Colors.blue[50],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Friend Info Header
             Row(
               children: [
                 CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Colors.blue[100],
+                  radius: 26,
+                  backgroundColor: Colors.blue.shade50,
                   backgroundImage: friendData['photoUrl'] != null && friendData['photoUrl'].isNotEmpty
                       ? NetworkImage(friendData['photoUrl'])
                       : null,
                   child: friendData['photoUrl'] == null || friendData['photoUrl'].isEmpty
                       ? Text(
-                      friendData['name'] != null && friendData['name'].isNotEmpty
-                          ? friendData['name'][0].toUpperCase()
-                          : '?',
-                      style: TextStyle(fontSize: 20, color: Colors.blue[700], fontWeight: FontWeight.bold))
+                          friendData['name'] != null && friendData['name'].isNotEmpty
+                              ? friendData['name'][0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: Colors.blue[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
                       : null,
                 ),
                 const SizedBox(width: 12),
@@ -181,28 +198,38 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                     children: [
                       Text(
                         friendData['name'] ?? 'Friend',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Montserrat',
-                            fontSize: 18),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
-                          Image.asset(
-                            'assets/badges/${(friendData['rank'] ?? 'bronze').toString().toLowerCase()}.png',
-                            height: 20,
-                            width: 20,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Icon(Icons.shield_outlined, size: 18, color: Colors.grey[600]),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '${friendData['rank'] ?? 'Bronze'} • ${friendData['points'] ?? 0} pts',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                                fontFamily: 'Montserrat', color: Colors.black54, fontWeight: FontWeight.w500),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.star, size: 14, color: Colors.amber),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${friendData['rank'] ?? 'Bronze'} • ${friendData['points'] ?? 0} pts',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -211,12 +238,24 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                 ),
               ],
             ),
-            const Divider(height: 24, thickness: 0.5),
+            const SizedBox(height: 16),
+            const Divider(height: 1, thickness: 1),
+            const SizedBox(height: 16),
+            // Challenge Status Section
             if (isLoadingThisFriendChallenge)
-              const Center(child: Padding(padding: EdgeInsets.all(8.0), child: SizedBox(width:20, height:20, child: CircularProgressIndicator(strokeWidth: 2.0))))
-            else if (challenge == null) // Checks if the nullable 'challenge' is actually null
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.0),
+                  ),
+                ),
+              )
+            else if (challenge == null)
               _buildStartChallengeButton(friendData)
-            else // 'challenge' is NOT null here, so it's safe to pass
+            else
               _buildChallengeStatusSection(challenge, friendData, friendUid),
           ],
         ),
@@ -228,12 +267,18 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("No active challenge with this friend.",
-            style: TextStyle(fontFamily: 'Montserrat', color: Colors.black54, fontSize: 14)),
-        const SizedBox(height: 12),
+        Text(
+          'No active challenge',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
+          child: ElevatedButton(
             onPressed: () {
               Navigator.pushNamed(
                 context,
@@ -244,13 +289,21 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                 },
               ).then((_) => _refreshChallengeForFriend(friendData['uid']));
             },
-            icon: SizedBox(height: 22, width: 22, child: Image.asset('assets/images/sword.png', color: Colors.white)),
-            label: const Text("Challenge Friend", style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              backgroundColor: Colors.blue[700],
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ),
+            child: const Text(
+              'Challenge Friend',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -284,14 +337,65 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
           statusSpecificUI = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Challenge: $habitType ($targetMax $unit)", style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w500)),
-              const SizedBox(height: 4),
-              const Text("Waiting for response...", style: TextStyle(fontFamily: 'Montserrat', fontStyle: FontStyle.italic, color: Colors.orangeAccent)),
-              const SizedBox(height: 10),
-              TextButton.icon(
-                icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-                label: const Text("Cancel Challenge", style: TextStyle(fontFamily: 'Montserrat', color: Colors.redAccent)),
-                onPressed: () => _cancelSentChallenge(challenge), // 'challenge' is non-null here
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.schedule, size: 20, color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$habitType ($targetMax $unit)',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[900],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Waiting for response...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[700],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _cancelSentChallenge(challenge),
+                  icon: Icon(Icons.cancel_outlined, size: 18, color: Colors.red[600]),
+                  label: Text(
+                    'Cancel Challenge',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red[600],
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.red[600]!, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
               ),
             ],
           );
@@ -299,30 +403,103 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
           statusSpecificUI = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("${friendData['name']} challenged you to: $habitType ($targetMax $unit)", style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w500)),
-              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.notifications_active, size: 20, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${friendData['name']} challenged you!',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[900],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$habitType ($targetMax $unit)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _acceptChallenge(challenge), // 'challenge' is non-null here
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                      child: const Text("Accept", style: TextStyle(fontFamily: 'Montserrat')),
+                      onPressed: () => _acceptChallenge(challenge),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: const Text(
+                        'Accept',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _declineChallenge(challenge), // 'challenge' is non-null here
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.redAccent, side: BorderSide(color: Colors.redAccent), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                      child: const Text("Decline", style: TextStyle(fontFamily: 'Montserrat')),
+                      onPressed: () => _declineChallenge(challenge),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.red[600]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Decline',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red[600],
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Center(child: TextButton(onPressed: () => _viewChallengeDetails(challenge), child: const Text("View Details", style: TextStyle(fontFamily: 'Montserrat')))), // 'challenge' non-null
+              Center(
+                child: TextButton(
+                  onPressed: () => _viewChallengeDetails(challenge),
+                  child: Text(
+                    'View Details',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         }
@@ -331,29 +508,77 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
       case 'completed_won':
       case 'completed_lost':
       case 'completed_draw':
-        String statusText = "Challenge: $habitType ($targetMax $unit)";
-        if (status == 'completed_won' && amISender || status == 'completed_lost' && !amISender) statusText += " - You Won! 🎉";
-        else if (status == 'completed_lost' && amISender || status == 'completed_won' && !amISender) statusText += " - ${friendData['name']} Won";
-        else if (status == 'completed_draw') statusText += " - It's a Draw!";
-        else statusText += " - Active";
+        String statusLabel = "Active";
+        MaterialColor statusColor = Colors.blue;
+        if (status == 'completed_won' && amISender || status == 'completed_lost' && !amISender) {
+          statusLabel = "You Won!";
+          statusColor = Colors.green;
+        } else if (status == 'completed_lost' && amISender || status == 'completed_won' && !amISender) {
+          statusLabel = "${friendData['name']} Won";
+          statusColor = Colors.red;
+        } else if (status == 'completed_draw') {
+          statusLabel = "It's a Draw!";
+          statusColor = Colors.orange;
+        }
 
         statusSpecificUI = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(statusText, style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            _buildProgressRow("You", myProgress, targetMax, unit, Colors.blue),
-            const SizedBox(height: 4),
-            _buildProgressRow(friendData['name'], friendProgress, targetMax, unit, Colors.green),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: statusColor.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: statusColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    status == 'active' ? Icons.trending_up : Icons.emoji_events,
+                    size: 20,
+                    color: statusColor.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$habitType ($targetMax $unit)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[900],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: statusColor.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildProgressRow("You", myProgress, targetMax, unit, Colors.blue[700]!),
             const SizedBox(height: 12),
+            _buildProgressRow(friendData['name'] ?? 'Friend', friendProgress, targetMax, unit, Colors.green[700]!),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.track_changes_outlined),
-                label: const Text("Track / View", style: TextStyle(fontFamily: 'Montserrat')),
+              child: ElevatedButton(
                 onPressed: () {
-                  // 'challenge' is non-null here due to the check at the function start
-                  final String? challengeId = challenge['id'] as String?; // This access is now safer
+                  final String? challengeId = challenge['id'] as String?;
                   if (challengeId != null) {
                     Navigator.pushNamed(
                       context,
@@ -362,23 +587,44 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
                     ).then((_) => _refreshChallengeForFriend(friendUid));
                   } else {
                     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Challenge ID missing for tracking.")));
-                    print("Challenge ID missing. Challenge data: $challenge"); // Log the challenge data if ID is missing
                     _refreshChallengeForFriend(friendUid);
                   }
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[700],
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  'Track / View',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
             if (status == 'active') ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Center(
                 child: TextButton.icon(
-                  icon: const Icon(Icons.cancel_schedule_send, color: Colors.orangeAccent, size: 18,),
-                  label: const Text("Request Cancellation", style: TextStyle(fontFamily: 'Montserrat', color: Colors.orangeAccent, fontSize: 13)),
-                  onPressed: () => _requestCancellation(challenge), // 'challenge' is non-null
+                  icon: Icon(Icons.cancel_schedule_send, size: 16, color: Colors.orange[700]),
+                  label: Text(
+                    'Request Cancellation',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onPressed: () => _requestCancellation(challenge),
                 ),
               ),
-            ]
+            ],
           ],
         );
         break;
@@ -386,28 +632,57 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
         String requestMessage = "";
         Widget actionButtons = const SizedBox.shrink();
 
-        // 'challenge' is non-null here
         if (challenge['cancelRequestedBy'] == _currentUser.uid) {
           requestMessage = "Cancellation requested. Waiting for ${friendData['name']}...";
         } else {
           requestMessage = "${friendData['name']} wants to cancel. Confirm?";
-          actionButtons = Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          actionButtons = Column(
             children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _acceptCancellation(challenge), // 'challenge' non-null
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  child: const Text("Confirm Cancel", style: TextStyle(fontFamily: 'Montserrat')),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _declineCancellation(challenge), // 'challenge' non-null
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.green, side: BorderSide(color: Colors.green), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  child: const Text("Keep Challenge", style: TextStyle(fontFamily: 'Montserrat')),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _acceptCancellation(challenge),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[600],
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: const Text(
+                        'Confirm Cancel',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => _declineCancellation(challenge),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.green[700]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Keep Challenge',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           );
@@ -415,16 +690,65 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
         statusSpecificUI = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Challenge: $habitType ($targetMax $unit)", style: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.w500)),
-            const SizedBox(height: 4),
-            Text(requestMessage, style: const TextStyle(fontFamily: 'Montserrat', fontStyle: FontStyle.italic, color: Colors.orangeAccent)),
-            const SizedBox(height: 10),
-            actionButtons,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, size: 20, color: Colors.orange[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$habitType ($targetMax $unit)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[900],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    requestMessage,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (actionButtons != const SizedBox.shrink()) ...[
+              const SizedBox(height: 12),
+              actionButtons,
+            ],
           ],
         );
         break;
       default:
-        statusSpecificUI = Text("Challenge status: $status", style: const TextStyle(fontFamily: 'Montserrat', color: Colors.grey));
+        statusSpecificUI = Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            "Challenge status: $status",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+        );
     }
 
     return statusSpecificUI;
@@ -438,17 +762,45 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("$label: ${progress.toStringAsFixed(0)}/$targetMax $unit", style: TextStyle(fontFamily: 'Montserrat', fontSize: 13)),
-            Text("${(progressValue * 100).toStringAsFixed(0)}%", style: TextStyle(fontFamily: 'Montserrat', fontSize: 12, color: barColor)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            Text(
+              '${progress.toStringAsFixed(0)} / $targetMax $unit',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[900],
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 2),
-        LinearProgressIndicator(
-          value: progressValue,
-          backgroundColor: barColor.withOpacity(0.2),
-          valueColor: AlwaysStoppedAnimation<Color>(barColor),
-          minHeight: 6,
-          borderRadius: BorderRadius.circular(3),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: progressValue,
+            backgroundColor: barColor.withOpacity(0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(barColor),
+            minHeight: 10,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '${(progressValue * 100).toStringAsFixed(0)}%',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: barColor,
+            ),
+          ),
         ),
       ],
     );
@@ -752,41 +1104,40 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       body: Column(
         children: [
           const TopHeader(),
           Expanded(
             child: SafeArea(
               top: false,
-              bottom: true,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 700),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                        child: Text(
-                          "Challenge Your Friends",
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
+              child: Container(
+                color: Colors.grey[50],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Section
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                      child: const Text(
+                        'Challenge Your Friends',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
                         ),
                       ),
-                      const Divider(thickness: 1, indent: 20, endIndent: 20),
-                      Expanded(
-                        child: _isLoadingFriends
-                            ? const Center(child: CircularProgressIndicator())
-                            : _friends.isEmpty
-                            ? _buildEmptyState(theme)
-                            : _buildFriendsList(),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: _isLoadingFriends
+                          ? const Center(child: CircularProgressIndicator())
+                          : _friends.isEmpty
+                          ? _buildEmptyState()
+                          : _buildFriendsList(),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -796,36 +1147,62 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people_outline_rounded, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.people_outline,
+                size: 64,
+                color: Colors.blue[700],
+              ),
+            ),
+            const SizedBox(height: 24),
             Text(
-              "No friends to challenge yet.",
-              style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
-              textAlign: TextAlign.center,
+              'No Friends Yet',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              "Add some friends to start a friendly competition!",
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              'Add some friends to start a friendly competition!',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text("Find Friends"),
+            const SizedBox(height: 32),
+            ElevatedButton(
               onPressed: () => Navigator.pushNamed(context, '/friends_screen'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                textStyle: const TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+                backgroundColor: Colors.blue[700],
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: const Text(
+                'Find Friends',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -836,7 +1213,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
 
   Widget _buildFriendsList() {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       itemCount: _friends.length,
       itemBuilder: (context, index) => _buildFriendCard(_friends[index]),
     );

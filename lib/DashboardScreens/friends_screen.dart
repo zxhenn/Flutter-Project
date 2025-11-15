@@ -259,52 +259,145 @@
           }, SetOptions(merge: true));
     }
 
-    // Widget for the search bar UI
-    Widget _buildSearchBarInput() {
-      // Renamed to avoid confusion with a method that returns a larger section
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(12.0, 8.0, 12.0, 12.0),
+    Widget _buildSearchBar() {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: TextField(
           controller: _searchController,
-          // autofocus: false, // Keep autofocus false
           decoration: InputDecoration(
-            hintText: 'Search & add users by name or email...',
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(25.0),
-              borderSide: BorderSide.none,
+            hintText: 'Search users by name or email...',
+            hintStyle: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
             ),
-            filled: true,
-            fillColor: Colors.grey[200],
-            contentPadding:
-            const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+            prefixIcon: Icon(
+              Icons.search,
+              color: Colors.grey[600],
+              size: 20,
+            ),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                _searchController.clear();
-                // _onSearchChanged will be triggered by listener, clearing results
-              },
-            )
+                    icon: Icon(
+                      Icons.clear,
+                      color: Colors.grey[600],
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                  )
                 : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 14,
+              horizontal: 16,
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[900],
           ),
         ),
       );
     }
 
-    // Widget for displaying search results
+    Widget _buildReceiveRequestsToggle() {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: SwitchListTile(
+          title: Text(
+            'Receive Friend Requests',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[900],
+            ),
+          ),
+          subtitle: Text(
+            'Allow others to send you friend requests',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          value: receiveRequests,
+          onChanged: _toggleReceiveRequests,
+          activeColor: Colors.blue[700],
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
+        ),
+      );
+    }
+
     Widget _buildSearchResultsContent() {
       if (_isSearching) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (_searchResults.isEmpty && _searchQuery.isNotEmpty) {
         return const Center(
           child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'No users found for your search.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontFamily: 'Montserrat', fontSize: 16),
+            padding: EdgeInsets.all(40),
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      if (_searchResults.isEmpty && _searchQuery.isNotEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No users found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try a different search term',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -312,70 +405,146 @@
       if (_searchQuery.isEmpty) return const SizedBox.shrink();
 
       return ListView.builder(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         itemCount: _searchResults.length,
         itemBuilder: (context, index) {
-          final userDoc = _searchResults[index]; // This is a DocumentSnapshot from 'Profiles'
+          final userDoc = _searchResults[index];
           final userData = userDoc.data() as Map<String, dynamic>;
           final name = userData['Name'] ?? 'N/A';
           final email = userData['Email'] ?? 'N/A';
-          final userId = userDoc.id; // Get the UID of the searched user
+          final photoUrl = userData['photoUrl'];
+          final userId = userDoc.id;
 
           return FutureBuilder<int>(
             future: PointingSystem.getTotalPoints(userId),
-            // Fetch total points for this user
             builder: (context, snapshot) {
-              String rankDisplay = 'Loading rank...';
-              Color rankColor = Colors.grey;
+              String rankDisplay = 'Loading...';
+              int points = 0;
 
               if (snapshot.connectionState == ConnectionState.done) {
                 if (snapshot.hasError) {
-                  rankDisplay = 'Error fetching rank';
-                  debugPrint(
-                      "Error fetching points for $userId: ${snapshot.error}");
+                  rankDisplay = 'Error';
                 } else if (snapshot.hasData) {
-                  final points = snapshot.data!;
+                  points = snapshot.data!;
                   final rank = PointingSystem.getRankFromPoints(points);
-                  rankDisplay = 'Rank: $rank ($points pts)';
-                  // You can add colors based on rank here if you want
-                  // Example:
-                  // if (rank == 'Grandmaster') rankColor = Colors.purple;
-                  // else if (rank == 'Master') rankColor = Colors.amber;
+                  rankDisplay = '$rank • $points pts';
                 } else {
-                  rankDisplay = 'Rank: Bronze (0 pts)'; // Default if no data
+                  rankDisplay = 'Bronze • 0 pts';
                 }
               }
 
-              return Card(
-                margin: const EdgeInsets.symmetric(
-                    vertical: 4.0, horizontal: 8.0),
-                child: ListTile(
-                  title: Text(name, style: const TextStyle(
-                      fontFamily: 'Montserrat', fontWeight: FontWeight.w600)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                     children: [
-                      Text(email,
-                          style: const TextStyle(fontFamily: 'Montserrat')),
-                      const SizedBox(height: 4),
-                      Text(
-                        rankDisplay,
-                        style: TextStyle(
-                          fontFamily: 'Montserrat',
-                          fontSize: 12,
-                          color: rankColor, // Apply color if you set it
-                          fontWeight: snapshot.connectionState ==
-                              ConnectionState.done && snapshot.hasData
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.blue.shade50,
+                        backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                            ? NetworkImage(photoUrl)
+                            : null,
+                        child: photoUrl == null || photoUrl.isEmpty
+                            ? Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.blue[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[900],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              email,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.star, size: 12, color: Colors.amber),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    rankDisplay,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () => _sendFriendRequest(userDoc),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          'Add',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                  trailing: ElevatedButton.icon(
-                    icon: const Icon(Icons.person_add_alt_1),
-                    label: const Text('Add'),
-                    onPressed: () => _sendFriendRequest(userDoc),
                   ),
                 ),
               );
@@ -385,39 +554,10 @@
       );
     }
 
-    // New: Widget for the static part: Title, Toggle, SearchBar
-    Widget _buildFixedHeaderAndSearch() {
-      return Column(
-        mainAxisSize: MainAxisSize.min, // Takes minimum vertical space
-        children: [
-          const SizedBox(height: 8),
-          const Text(
-            "Friends",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Montserrat',
-              color: Colors.black,
-            ),
-          ),
-          const Divider(thickness: 1),
-          SwitchListTile(
-            title: const Text('Receive Friend Requests?',
-                style: TextStyle(fontFamily: 'Montserrat')),
-            value: receiveRequests,
-            onChanged: _toggleReceiveRequests,
-          ),
-          _buildSearchBarInput(), // Call to the TextField widget
-          const Divider(thickness: 1),
-        ],
-      );
-    }
 
 
-    // Modified: Widget for the scrollable friend requests and friends list
     Widget _buildFriendListsSection() {
       final user = FirebaseAuth.instance.currentUser;
-      // User null check already happens in main build, but good for safety
       if (user == null) return const Center(child: Text('Not signed in'));
 
       final requestRef = FirebaseFirestore.instance
@@ -429,336 +569,296 @@
           .doc(user.uid)
           .collection('friends');
 
-      return SingleChildScrollView( // Makes this section scrollable
-        child: Padding( // Added padding for visual separation if needed
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            // Important for Column in SingleChildScrollView
-            children: [
-              Container(
-                color: Colors.blueAccent,
-                width: double.infinity,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text(
-                    textAlign: TextAlign.center,
-                    'Friend Requests',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontFamily: 'Montserrat',
-                    ),
-                  ),
+      return SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Settings Toggle
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _buildReceiveRequestsToggle(),
+            ),
+            const SizedBox(height: 24),
+            // Friend Requests Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Friend Requests',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
                 ),
               ),
-              SizedBox(
-                height: 180,
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: requestRef.snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Center(
-                          child: Text(
-                            'No friend requests.',
-                            style: TextStyle(fontFamily: 'Montserrat'),
-                          ),
-                        ),
-                      );
-                    }
-                    final requests = snapshot.data!.docs;
-                    return ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: requests.length,
-                      itemBuilder: (context, index) {
-                        final doc = requests[index];
-                        final fromUid = doc['fromUid'];
-                        final fromName = (doc.data() as Map<String, dynamic>)
-                            .containsKey('fromName')
-                            ? doc['fromName']
-                            : 'Anonymous';
-                        final fromEmail = (doc.data() as Map<String, dynamic>)
-                            .containsKey('fromEmail')
-                            ? doc['fromEmail']
-                            : '';
-                        return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 8,
-                              vertical: 4),
-                          child: Container(
-                            width: 200,
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  fromName,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'Montserrat'),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(fromEmail,
-                                    style: const TextStyle(
-                                        fontSize: 14, fontFamily: 'Montserrat'),
-                                    overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment
-                                      .spaceEvenly,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.check,
-                                          color: Colors.green),
-                                      tooltip: 'Accept Request',
-                                      onPressed: () async {
-                                        final current = FirebaseAuth.instance
-                                            .currentUser;
-                                        if (current == null) return;
-                                        final currentUid = current.uid;
-
-                                        String currentUserName = current
-                                            .displayName ?? 'Anonymous';
-                                        String currentUserEmail = current
-                                            .email ?? '';
-                                        final currentUserProfile = await FirebaseFirestore
-                                            .instance
-                                            .collection('Profiles')
-                                            .doc(currentUid)
-                                            .get();
-                                        if (currentUserProfile.exists) {
-                                          currentUserName = currentUserProfile
-                                              .data()?['Name'] ??
-                                              currentUserName;
-                                          currentUserEmail = currentUserProfile
-                                              .data()?['Email'] ??
-                                              currentUserEmail;
-                                        }
-
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(currentUid)
-                                            .collection('friends')
-                                            .doc(fromUid)
-                                            .set({
-                                          'uid': fromUid,
-                                          'name': fromName,
-                                          'email': fromEmail,
-                                          'addedAt': FieldValue
-                                              .serverTimestamp(),
-                                        });
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(fromUid)
-                                            .collection('friends')
-                                            .doc(currentUid)
-                                            .set({
-                                          'uid': currentUid,
-                                          'name': currentUserName,
-                                          'email': currentUserEmail,
-                                          'addedAt': FieldValue
-                                              .serverTimestamp(),
-                                        });
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(currentUid)
-                                            .collection('friend_requests')
-                                            .doc(fromUid)
-                                            .delete();
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(fromUid)
-                                            .collection('friend_requests')
-                                            .doc(currentUid)
-                                            .delete();
-                                        if (!mounted) return;
-                                        ScaffoldMessenger
-                                            .of(context)
-                                            .showSnackBar(SnackBar(
-                                            content: Text(
-                                                'You and $fromName are now friends!')),);
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                          Icons.close, color: Colors.red),
-                                      tooltip: 'Decline Request',
-                                      onPressed: () async {
-                                        final current = FirebaseAuth.instance
-                                            .currentUser;
-                                        if (current == null) return;
-                                        await FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(
-                                            current.uid)
-                                            .collection(
-                                            'friend_requests')
-                                            .doc(fromUid)
-                                            .delete();
-                                        if (!mounted) return;
-                                        ScaffoldMessenger
-                                            .of(context)
-                                            .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Friend request removed.')),);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-              const Divider(),
-              Container(
-                color: Colors.blueAccent,
-                width: double.infinity,
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text(
-                    textAlign: TextAlign.center,
-                    'Your Friends',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontFamily: 'Montserrat',
-                    ),
-                  ),
-                ),
-              ),
-              StreamBuilder<QuerySnapshot>(
-                stream: friendsRef.snapshots(),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 160,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: requestRef.snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding( // Give some space for indicator
-                      padding: EdgeInsets.symmetric(vertical: 20.0),
-                      child: Center(child: CircularProgressIndicator()),
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      ),
                     );
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(
-                          vertical: 20.0, horizontal: 16.0),
-                      child: Center(
-                        child: Text(
-                          "You haven't added any friends yet.\nUse the search bar above to find users.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontFamily: 'Montserrat',
-                              fontWeight: FontWeight.w400,
-                              fontSize: 16),
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.person_add_outlined,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No friend requests',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
                   }
-                  final friends = snapshot.data!.docs;
+                  final requests = snapshot.data!.docs;
                   return ListView.builder(
-                    shrinkWrap: true,
-                    // Crucial for ListView in Column in SingleChildScrollView
-                    physics: const NeverScrollableScrollPhysics(),
-                    // Crucial
-                    itemCount: friends.length,
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: requests.length,
                     itemBuilder: (context, index) {
-                      final data = friends[index].data() as Map<String,
-                          dynamic>;
-                      final friendId = data['uid'] ?? '';
-                      final friendEmail = data['email'] ?? '';
+                      final doc = requests[index];
+                      final fromUid = doc['fromUid'];
+                      final fromName = (doc.data() as Map<String, dynamic>)
+                              .containsKey('fromName')
+                          ? doc['fromName']
+                          : 'Anonymous';
+                      final fromEmail = (doc.data() as Map<String, dynamic>)
+                              .containsKey('fromEmail')
+                          ? doc['fromEmail']
+                          : '';
+
                       return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection(
-                            'Profiles').doc(friendId).get(),
+                        future: FirebaseFirestore.instance
+                            .collection('Profiles')
+                            .doc(fromUid)
+                            .get(),
                         builder: (context, profileSnapshot) {
-                          String friendName = data['name'] ?? 'Friend';
-                          if (profileSnapshot.connectionState ==
-                              ConnectionState.done && profileSnapshot.hasData &&
+                          String photoUrl = '';
+                          if (profileSnapshot.hasData &&
                               profileSnapshot.data!.exists) {
-                            final profileData = profileSnapshot.data!
-                                .data() as Map<String, dynamic>;
-                            friendName = profileData['Name'] ?? friendName;
+                            final profileData =
+                                profileSnapshot.data!.data() as Map<String, dynamic>;
+                            photoUrl = profileData['photoUrl'] ?? '';
                           }
-                          return ListTile(
-                            title: Text(friendName, style: const TextStyle(
-                                fontFamily: 'Montserrat')),
-                            subtitle: Text(friendEmail, style: const TextStyle(
-                                fontFamily: 'Montserrat')),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (value) async {
-                                if (value == 'unfriend') {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (_) =>
-                                        AlertDialog(
-                                          title: const Text('Unfriend'),
-                                          content: Text(
-                                              'Do you really want to unfriend $friendName?'),
-                                          actionsPadding: const EdgeInsets
-                                              .symmetric(
-                                              horizontal: 16, vertical: 12),
-                                          actionsAlignment: MainAxisAlignment
-                                              .spaceBetween,
-                                          actions: [
-                                            TextButton(onPressed: () =>
-                                                Navigator.pop(context, false),
-                                                style: TextButton.styleFrom(
-                                                    backgroundColor: Colors.grey
-                                                        .shade300),
-                                                child: const Text('No',
-                                                    style: TextStyle(
-                                                        color: Colors.black87,
-                                                        fontSize: 16))),
-                                            TextButton(onPressed: () =>
-                                                Navigator.pop(context, true),
-                                                style: TextButton.styleFrom(
-                                                    backgroundColor: Colors
-                                                        .red),
-                                                child: const Text(
-                                                    'Yes, Unfriend',
-                                                    style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: 16))),
-                                          ],
-                                        ),
-                                  );
-                                  if (confirm == true) {
-                                    final currentUser = FirebaseAuth.instance
-                                        .currentUser;
-                                    if (currentUser == null) return;
-                                    final currentId = currentUser.uid;
-                                    await FirebaseFirestore.instance.collection(
-                                        'users').doc(currentId).collection(
-                                        'friends').doc(friendId).delete();
-                                    await FirebaseFirestore.instance.collection(
-                                        'users').doc(friendId).collection(
-                                        'friends').doc(currentId).delete();
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text(
-                                            'You unfriended $friendName')));
-                                  }
-                                } else if (value == 'view') {
-                                  Navigator.pushNamed(context, '/view_profile',
-                                      arguments: {'userId': friendId});
-                                }
-                              },
-                              itemBuilder: (context) =>
-                              [
-                                const PopupMenuItem(
-                                    value: 'view', child: Text('View Profile')),
-                                const PopupMenuItem(
-                                    value: 'unfriend', child: Text('Unfriend')),
+
+                          return Container(
+                            width: 200,
+                            margin: const EdgeInsets.only(right: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.grey.shade200,
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
                               ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 32,
+                                    backgroundColor: Colors.blue.shade50,
+                                    backgroundImage: photoUrl.isNotEmpty
+                                        ? NetworkImage(photoUrl)
+                                        : null,
+                                    child: photoUrl.isEmpty
+                                        ? Text(
+                                            fromName.isNotEmpty
+                                                ? fromName[0].toUpperCase()
+                                                : '?',
+                                            style: TextStyle(
+                                              fontSize: 24,
+                                              color: Colors.blue[700],
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    fromName,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[900],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    fromEmail,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () async {
+                                            final current =
+                                                FirebaseAuth.instance.currentUser;
+                                            if (current == null) return;
+                                            final currentUid = current.uid;
+
+                                            String currentUserName =
+                                                current.displayName ?? 'Anonymous';
+                                            String currentUserEmail =
+                                                current.email ?? '';
+                                            final currentUserProfile =
+                                                await FirebaseFirestore.instance
+                                                    .collection('Profiles')
+                                                    .doc(currentUid)
+                                                    .get();
+                                            if (currentUserProfile.exists) {
+                                              currentUserName =
+                                                  currentUserProfile.data()?['Name'] ??
+                                                      currentUserName;
+                                              currentUserEmail =
+                                                  currentUserProfile
+                                                          .data()?['Email'] ??
+                                                      currentUserEmail;
+                                            }
+
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(currentUid)
+                                                .collection('friends')
+                                                .doc(fromUid)
+                                                .set({
+                                              'uid': fromUid,
+                                              'name': fromName,
+                                              'email': fromEmail,
+                                              'addedAt':
+                                                  FieldValue.serverTimestamp(),
+                                            });
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(fromUid)
+                                                .collection('friends')
+                                                .doc(currentUid)
+                                                .set({
+                                              'uid': currentUid,
+                                              'name': currentUserName,
+                                              'email': currentUserEmail,
+                                              'addedAt':
+                                                  FieldValue.serverTimestamp(),
+                                            });
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(currentUid)
+                                                .collection('friend_requests')
+                                                .doc(fromUid)
+                                                .delete();
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(fromUid)
+                                                .collection('friend_requests')
+                                                .doc(currentUid)
+                                                .delete();
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(SnackBar(
+                                              content: Text(
+                                                  'You and $fromName are now friends!'),
+                                            ));
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 8),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            elevation: 2,
+                                          ),
+                                          child: const Icon(
+                                            Icons.check,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () async {
+                                            final current =
+                                                FirebaseAuth.instance.currentUser;
+                                            if (current == null) return;
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(current.uid)
+                                                .collection('friend_requests')
+                                                .doc(fromUid)
+                                                .delete();
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                              content:
+                                                  Text('Friend request removed.'),
+                                            ));
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red[600],
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 8),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            elevation: 2,
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -767,10 +867,349 @@
                   );
                 },
               ),
-              const SizedBox(height: 20),
-              // Add some space at the bottom for better scrolling
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            // Friends List Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Your Friends',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            StreamBuilder<QuerySnapshot>(
+              stream: friendsRef.snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(40),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 40, 20, 100),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.people_outline,
+                              size: 64,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'No Friends Yet',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Use the search bar above to find users',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                final friends = snapshot.data!.docs;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                  itemCount: friends.length,
+                  itemBuilder: (context, index) {
+                    final data = friends[index].data() as Map<String, dynamic>;
+                    final friendId = data['uid'] ?? '';
+                    final friendEmail = data['email'] ?? '';
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance
+                          .collection('Profiles')
+                          .doc(friendId)
+                          .get(),
+                      builder: (context, profileSnapshot) {
+                        String friendName = data['name'] ?? 'Friend';
+                        String photoUrl = '';
+                        int totalPoints = 0;
+                        String rank = 'Bronze';
+
+                        if (profileSnapshot.connectionState ==
+                                ConnectionState.done &&
+                            profileSnapshot.hasData &&
+                            profileSnapshot.data!.exists) {
+                          final profileData = profileSnapshot.data!.data()
+                              as Map<String, dynamic>;
+                          friendName = profileData['Name'] ?? friendName;
+                          photoUrl = profileData['photoUrl'] ?? '';
+                        }
+
+                        return FutureBuilder<int>(
+                          future: PointingSystem.getTotalPoints(friendId),
+                          builder: (context, pointsSnapshot) {
+                            if (pointsSnapshot.hasData) {
+                              totalPoints = pointsSnapshot.data!;
+                              rank = PointingSystem.getRankFromPoints(totalPoints);
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.grey.shade200,
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/view_profile',
+                                      arguments: {'userId': friendId},
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 28,
+                                          backgroundColor: Colors.blue.shade50,
+                                          backgroundImage: photoUrl.isNotEmpty
+                                              ? NetworkImage(photoUrl)
+                                              : null,
+                                          child: photoUrl.isEmpty
+                                              ? Text(
+                                                  friendName.isNotEmpty
+                                                      ? friendName[0]
+                                                          .toUpperCase()
+                                                      : '?',
+                                                  style: TextStyle(
+                                                    fontSize: 20,
+                                                    color: Colors.blue[700],
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                friendName,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey[900],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                friendEmail,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(Icons.star,
+                                                        size: 12,
+                                                        color: Colors.amber),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      '$rank • $totalPoints pts',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.grey[700],
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuButton<String>(
+                                          icon: Icon(
+                                            Icons.more_vert,
+                                            color: Colors.grey[600],
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          itemBuilder: (context) => [
+                                            PopupMenuItem(
+                                              value: 'view',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.person_outline,
+                                                      size: 20,
+                                                      color: Colors.grey[700]),
+                                                  const SizedBox(width: 12),
+                                                  const Text('View Profile'),
+                                                ],
+                                              ),
+                                            ),
+                                            PopupMenuItem(
+                                              value: 'unfriend',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.person_remove,
+                                                      size: 20,
+                                                      color: Colors.red[600]),
+                                                  const SizedBox(width: 12),
+                                                  Text(
+                                                    'Unfriend',
+                                                    style: TextStyle(
+                                                      color: Colors.red[600],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                          onSelected: (value) async {
+                                            if (value == 'unfriend') {
+                                              final confirm =
+                                                  await showDialog<bool>(
+                                                context: context,
+                                                builder: (_) => AlertDialog(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  title: const Text('Unfriend'),
+                                                  content: Text(
+                                                      'Do you really want to unfriend $friendName?'),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context, false),
+                                                      child: const Text('Cancel'),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context, true),
+                                                      child: Text(
+                                                        'Unfriend',
+                                                        style: TextStyle(
+                                                          color: Colors.red[600],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                              if (confirm == true) {
+                                                final currentUser =
+                                                    FirebaseAuth.instance
+                                                        .currentUser;
+                                                if (currentUser == null) return;
+                                                final currentId = currentUser.uid;
+                                                await FirebaseFirestore.instance
+                                                    .collection('users')
+                                                    .doc(currentId)
+                                                    .collection('friends')
+                                                    .doc(friendId)
+                                                    .delete();
+                                                await FirebaseFirestore.instance
+                                                    .collection('users')
+                                                    .doc(friendId)
+                                                    .collection('friends')
+                                                    .doc(currentId)
+                                                    .delete();
+                                                if (!mounted) return;
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(SnackBar(
+                                                  content: Text(
+                                                      'You unfriended $friendName'),
+                                                ));
+                                              }
+                                            } else if (value == 'view') {
+                                              Navigator.pushNamed(
+                                                context,
+                                                '/view_profile',
+                                                arguments: {'userId': friendId},
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
         ),
       );
     }
@@ -779,52 +1218,63 @@
     Widget build(BuildContext context) {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        return const Center(
-            child: Text('Not signed in. Please sign in to view friends.'));
+        return Scaffold(
+          backgroundColor: Colors.grey[50],
+          body: const Center(
+            child: Text('Not signed in. Please sign in to view friends.'),
+          ),
+        );
       }
 
-      // Get MediaQuery data ONCE, ideally before keyboard affects it significantly
-      // However, build can be called multiple times.
-      // The resizeToAvoidBottomInset: false is the primary guard.
-      final MediaQueryData mediaQuery = MediaQuery.of(context);
-      final double bottomInset = mediaQuery.viewInsets
-          .bottom; // Keyboard height
-
       return Scaffold(
-        backgroundColor: Colors.white,
-        resizeToAvoidBottomInset: false, // CRUCIAL: Keep this
+        backgroundColor: Colors.grey[50],
+        resizeToAvoidBottomInset: false,
         body: Column(
           children: [
-            // Section 1: TopHeader (assumes it handles its own status bar padding)
-            TopHeader(
-              onProfileTap: () => Navigator.pushNamed(context, '/profile'),
-              onNotificationTap: () =>
-                  Navigator.pushNamed(context, '/notifications'),
-            ),
-
-            // Section 2: Fixed search area
-            _buildFixedHeaderAndSearch(),
-
-            // Section 3: Dynamic content (lists or search results)
-            // This Expanded widget will take the remaining space.
-            // Its child will be laid out respecting the keyboard inset because
-            // we are NOT removing the viewInsets for THIS child directly anymore
-            // with MediaQuery.removePadding. Instead, the SingleChildScrollView
-            // or ListView within the children should handle scrolling.
+            const TopHeader(),
             Expanded(
-              child: _searchQuery
-                  .trim()
-                  .isEmpty
-                  ? _buildFriendListsSection() // This is already a SingleChildScrollView
-                  : _buildSearchResultsContent(), // This is a ListView
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  color: Colors.grey[50],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Section
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Friends',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Search Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildSearchBar(),
+                      ),
+                      const SizedBox(height: 20),
+                      // Content Section
+                      Expanded(
+                        child: _searchQuery.trim().isEmpty
+                            ? _buildFriendListsSection()
+                            : _buildSearchResultsContent(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-
-            // If you want to ensure the content doesn't go under a translucent keyboard,
-            // you could add a SizedBox here that accounts for the keyboard height.
-            // This is usually only needed if resizeToAvoidBottomInset is true,
-            // or if you have specific UI elements at the very bottom that are not part of a scroll view.
-            // if (bottomInset > 0 && _searchController.hasFocus) // Only if keyboard is visible and search has focus
-            //   SizedBox(height: bottomInset),
           ],
         ),
       );
