@@ -242,183 +242,437 @@ class _MinutesTimerPageState extends State<MinutesTimerPage> with WidgetsBinding
   // --- Main Build Method ---
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bool canRecordLap = _isRunning && !_isPausedDueToSpeed && _currentLapSeconds > 0;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Activity Timer'),
-        elevation: 1,
-        backgroundColor: theme.scaffoldBackgroundColor,
-        foregroundColor: theme.textTheme.titleLarge?.color,
+        backgroundColor: Colors.grey[50],
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+          onPressed: () => Navigator.pop(context, null),
+        ),
+        title: Text(
+          'Activity Timer',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // --- Target Time Display ---
-            _buildTargetTimeCard(theme),
-            const SizedBox(height: 20),
+            // Target Time Display
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        'Min Target',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formatDuration((widget.targetMin * 60).toInt()),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    width: 1,
+                    height: 50,
+                    color: Colors.grey.shade300,
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        'Max Target',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formatDuration((widget.targetMax * 60).toInt()),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
-            // --- Main Timer Display ---
-            _buildMainTimerCard(theme),
-            const SizedBox(height: 12),
-            if (_isPausedDueToSpeed)
-              Text('Timer paused due to speed', style: TextStyle(color: Colors.orange[700], fontStyle: FontStyle.italic)),
-            const SizedBox(height: 20),
+            // Main Timer Display
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Total Time',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _formatDuration(_totalElapsedSeconds),
+                    style: TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                      fontFeatures: [const FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Speed: ${_lastValidSpeed.toStringAsFixed(1)} m/s',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Inactive: ${_formatDuration(_inactiveSeconds)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_isPausedDueToSpeed) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.orange.shade200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.pause_circle_outline, size: 16, color: Colors.orange[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Timer paused due to speed',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.orange[800],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
+            // Lap Info & Controls
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'LAP $_lapCounter',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _formatDuration(_currentLapSeconds),
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: canRecordLap ? _recordLap : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.flag,
+                          size: 18,
+                          color: canRecordLap ? Colors.white : Colors.grey[400],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Lap',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: canRecordLap ? Colors.white : Colors.grey[400],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
-            // --- Lap Info & Controls ---
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('LAP $_lapCounter', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    Text(_formatDuration(_currentLapSeconds), style: theme.textTheme.headlineSmall),
+            // Lap List
+            if (_lapTimesInSeconds.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
-                ElevatedButton.icon(
-                  icon: Icon(Icons.flag_outlined, color: canRecordLap ? null : Colors.grey),
-                  label: const Text('Lap'),
-                  onPressed: canRecordLap ? _recordLap : null,
-                  style: ElevatedButton.styleFrom(
-                    // backgroundColor: theme.colorScheme.secondary,
-                    // foregroundColor: theme.colorScheme.onSecondary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Completed Laps',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...(_lapTimesInSeconds.reversed.toList().asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final lapTime = entry.value;
+                      final lapNumber = _lapTimesInSeconds.length - index;
+                      return Container(
+                        margin: EdgeInsets.only(bottom: index < _lapTimesInSeconds.length - 1 ? 8 : 0),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Lap $lapNumber',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[900],
+                              ),
+                            ),
+                            Text(
+                              _formatDuration(lapTime),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    })),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Action Buttons
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _showDiscardDialog,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red[700],
+                      side: BorderSide(color: Colors.red.shade300!),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cancel_outlined, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Discard',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: _startStopTimer,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isRunning ? Colors.red[600] : Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isRunning ? Icons.stop : Icons.play_arrow,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isRunning ? 'Stop' : 'Start',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: (_totalElapsedSeconds > 0 || _lapTimesInSeconds.isNotEmpty) ? _saveAndExit : null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue[700],
+                      side: BorderSide(color: Colors.blue.shade300!),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.save, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Divider(),
-
-            // --- Lap List ---
-            Expanded(
-              child: _lapTimesInSeconds.isEmpty
-                  ? Center(child: Text('No laps recorded yet.', style: TextStyle(color: Colors.grey[600])))
-                  : ListView.builder(
-                itemCount: _lapTimesInSeconds.length,
-                itemBuilder: (context, index) {
-                  final lapTime = _lapTimesInSeconds.reversed.toList()[index]; // Show newest first
-                  final lapNumber = _lapTimesInSeconds.length - index;
-                  return ListTile(
-                    dense: true,
-                    leading: Text('Lap $lapNumber', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-                    trailing: Text(_formatDuration(lapTime), style: theme.textTheme.bodyMedium),
-                  );
-                },
-              ),
-            ),
-            Divider(),
-            const SizedBox(height: 10),
-
-            // --- Action Buttons ---
-            _buildActionButtons(theme),
+            const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  // --- UI Helper Widgets ---
-  Widget _buildTargetTimeCard(ThemeData theme) {
-    final formattedTargetMin = _formatDuration((widget.targetMin * 60).toInt());
-    final formattedTargetMax = _formatDuration((widget.targetMax * 60).toInt());
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Column(
-              children: [
-                Text('Min Target', style: theme.textTheme.labelLarge?.copyWith(color: Colors.grey[700])),
-                Text(formattedTargetMin, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            Column(
-              children: [
-                Text('Max Target', style: theme.textTheme.labelLarge?.copyWith(color: Colors.grey[700])),
-                Text(formattedTargetMax, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMainTimerCard(ThemeData theme) {
-    return Card(
-      elevation: 4,
-      color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-        child: Column(
-          children: [
-            Text('Total Time', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              _formatDuration(_totalElapsedSeconds),
-              style: theme.textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Text('Speed: ${_lastValidSpeed.toStringAsFixed(1)} m/s', style: theme.textTheme.bodySmall),
-                Text('Inactive: ${_formatDuration(_inactiveSeconds)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange[800])),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.cancel_outlined),
-            label: const Text('Discard'),
-            onPressed: _showDiscardDialog,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red[700],
-              side: BorderSide(color: Colors.red[300]!),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-          ),
-          ElevatedButton.icon(
-            icon: _isRunning ? const Icon(Icons.stop_rounded) : const Icon(Icons.play_arrow_rounded),
-            label: Text(_isRunning ? 'Stop' : 'Start', style: TextStyle(fontSize: 16)),
-            onPressed: _startStopTimer,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isRunning ? Colors.redAccent : theme.colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.save_alt_outlined),
-            label: const Text('Save'),
-            onPressed: (_totalElapsedSeconds > 0 || _lapTimesInSeconds.isNotEmpty) ? _saveAndExit : null, // Disable if no progress
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.primary,
-              side: BorderSide(color: theme.colorScheme.primary),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-          ),
-        ],
       ),
     );
   }

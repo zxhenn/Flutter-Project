@@ -253,98 +253,321 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
 
 
 
+  IconData _getHabitIcon(String type) {
+    final typeLower = type.toLowerCase();
+    if (typeLower.contains('run')) return Icons.directions_run;
+    if (typeLower.contains('walk')) return Icons.directions_walk;
+    if (typeLower.contains('cycle') || typeLower.contains('bike')) return Icons.pedal_bike;
+    if (typeLower.contains('swim')) return Icons.pool;
+    if (typeLower.contains('weight') || typeLower.contains('lift')) return Icons.fitness_center;
+    if (typeLower.contains('yoga')) return Icons.self_improvement;
+    if (typeLower.contains('meditate')) return Icons.spa;
+    if (typeLower.contains('sport') || typeLower.contains('ball')) return Icons.sports_soccer;
+    if (typeLower.contains('push') || typeLower.contains('squat')) return Icons.accessibility_new;
+    return Icons.star_border;
+  }
+
   @override
   Widget build(BuildContext context) {
     final type = widget.habitData['type'] ?? 'Habit';
+    final progressPercentage = (todayProgress / targetMax).clamp(0.0, 1.0);
+    final progressText = unit == 'Minutes'
+        ? '${_formatDuration(todayProgress.toInt())} / ${_formatDuration(targetMax.toInt())}'
+        : '${todayProgress.toStringAsFixed(unit == 'Distance (km)' ? 2 : 0)} / ${targetMax.toStringAsFixed(unit == 'Distance (km)' ? 2 : 0)} $unit';
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Track Progress'),
-        backgroundColor: Colors.blue[700],
+        backgroundColor: Colors.grey[50],
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.grey[900]),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Track Progress',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$type ($unit)', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: (todayProgress / targetMax).clamp(0.0, 1.0),
-              minHeight: 12,
-              backgroundColor: Colors.grey[300],
-              color: isComplete ? Colors.green : Colors.blue,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              unit == 'Minutes'
-                  ? _formatDuration(todayProgress.toInt()) + ' / ' + _formatDuration(targetMax.toInt())
-                  : '$todayProgress / $targetMax $unit',
-              style: const TextStyle(fontSize: 18),
-            ),
-
-            if (sessionDuration != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Last session time: ${_formatDuration(sessionDuration!)}',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
+            // Habit Header Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getHabitIcon(type),
+                      size: 28,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          type,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[900],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          unit,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isComplete)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check, color: Colors.white, size: 16),
+                          const SizedBox(width: 4),
+                          const Text(
+                            'Complete',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 24),
 
-            if (unit == 'Minutes')
-              ElevatedButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MinutesTimerPage(
-                        habitId: widget.habitId,
-                        targetMin: targetMin,
-                        targetMax: targetMax,
-
+            // Progress Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Today\'s Progress',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[900],
+                        ),
+                      ),
+                      Text(
+                        '${(progressPercentage * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isComplete ? Colors.green : Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: LinearProgressIndicator(
+                      value: progressPercentage,
+                      minHeight: 16,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isComplete ? Colors.green : Colors.blue[700]!,
                       ),
                     ),
-                  );
-                  if (result != null) {
-                    final seconds = result;
-                    final minutes = (seconds / 60).toDouble();
-                    _updateProgress(todayProgress + minutes); // ✅ send raw seconds
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      progressText,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                  ),
+                  if (sessionDuration != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Last session: ${_formatDuration(sessionDuration!)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
-                  }
-
-
-                },
-                child: const Text('Track Minutes'),
+            // Action Button
+            if (unit == 'Minutes')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MinutesTimerPage(
+                          habitId: widget.habitId,
+                          targetMin: targetMin,
+                          targetMax: targetMax,
+                        ),
+                      ),
+                    );
+                    if (result != null) {
+                      final seconds = result;
+                      final minutes = (seconds / 60).toDouble();
+                      _updateProgress(todayProgress + minutes);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.timer, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Track Minutes',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               )
             else if (unit == 'Sessions')
-              ElevatedButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SessionTimerPage(
-                        habitId: widget.habitId,
-                        targetMin: targetMin,
-                        targetMax: targetMax,
-
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SessionTimerPage(
+                          habitId: widget.habitId,
+                          targetMin: targetMin,
+                          targetMax: targetMax,
+                        ),
                       ),
-                    ),
-                  );
-                  if (result != null && result is Map) {
-                    if (result['sessionCount'] != null) _updateProgress(todayProgress + result['sessionCount']);
-                    if (result['duration'] != null) {
-                      setState(() => sessionDuration = result['duration']);
+                    );
+                    if (result != null && result is Map) {
+                      if (result['sessionCount'] != null) {
+                        _updateProgress(todayProgress + result['sessionCount']);
+                      }
+                      if (result['duration'] != null) {
+                        setState(() => sessionDuration = result['duration']);
+                      }
                     }
-                  }
-                },
-                child: const Text('Start Session'),
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.play_circle_outline, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Start Session',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               )
             else if (unit == 'Distance (km)')
-                ElevatedButton(
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
                   onPressed: () async {
                     final result = await Navigator.push(
                       context,
@@ -358,25 +581,68 @@ class _HabitLoggerPageState extends State<HabitLoggerPage> {
                     );
                     if (result != null) {
                       final seconds = result;
-                      _updateProgress(seconds); // ✅ send raw seconds
+                      _updateProgress(seconds);
                     }
-
                   },
-                  child: const Text('Track Now (GPS)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.location_on, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Track with GPS',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-
-            const SizedBox(height: 24),
-            if (isComplete)
-              const Text(
-                '✅ You reached your target for today!',
-                style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
               ),
+
+            if (isComplete) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.green.shade200,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green[700], size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'You reached your target for today!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green[900],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
-
         ),
-
       ),
-
     );
   }
 
