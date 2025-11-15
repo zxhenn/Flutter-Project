@@ -71,207 +71,247 @@ class _SettingsPageState extends State<SettingsPage> {
     final providerId = user?.providerData.first.providerId;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                'User Settings',
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: Colors.blue[700],
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Settings',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Profile Section
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.blue[700],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // ✅ Profile Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Colors.blue.shade100,
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white,
                       backgroundImage: user?.photoURL != null
                           ? NetworkImage(user!.photoURL!)
                           : null,
                       child: user?.photoURL == null
-                          ? const Icon(Icons.person, size: 36, color: Colors.blue)
+                          ? Text(
+                              user?.displayName?.isNotEmpty == true
+                                  ? user!.displayName![0].toUpperCase()
+                                  : user?.email?.isNotEmpty == true
+                                      ? user!.email![0].toUpperCase()
+                                      : 'U',
+                              style: TextStyle(
+                                color: Colors.blue[700],
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
                           : null,
                     ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _displayName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _email,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          _displayName,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Image.asset(
+                          'assets/badges/${_rank.toLowerCase()}.png',
+                          height: 40,
+                          width: 40,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.star,
+                              size: 32,
+                              color: Colors.white.withOpacity(0.9),
+                            );
+                          },
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _email,
-                          style: const TextStyle(
-                            fontFamily: 'Montserrat',
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 🏅 Rank Badge Image
-                            Image.asset(
-                              'assets/badges/${_rank.toLowerCase()}.png',
-                              height: 60,
-                              width: 50,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(Icons.emoji_events, size: 30, color: Colors.grey);
-                              },
+                            Text(
+                              _rank,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            const SizedBox(width: 3),
-
-                            // 🔠 Rank + Points stacked
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _rank,
-                                  style: const TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Points: $_points',
-                                  style: const TextStyle(
-                                    fontFamily: 'Montserrat',
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '$_points points',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 12,
+                              ),
                             ),
-
-                            const SizedBox(width: 16),
-
                           ],
                         ),
-
-
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 32),
-
-              _settingsButton(
-                icon: Icons.person_outline,
-                label: 'Edit Profile',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                  );
-                },
-              ),
-              _settingsButton(
-                icon: Icons.lock,
-                label: 'Change Password',
-                onTap: providerId == 'password'
-                    ? () async {
-                  final email = FirebaseAuth.instance.currentUser?.email;
-                  if (email != null) {
-                    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password reset email sent')),
-                    );
-                  }
-                }
-                    : null,
-              ),
-              _settingsButton(
-                icon: Icons.bar_chart_outlined,
-                label: 'Analysis',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AnalysisScreen()),
-                  );
-                },
-              ),
-              _settingsButton(
-                icon: Icons.workspace_premium_rounded,
-                label: 'Badges & Boosts',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const BadgeScreen()),
-                  );
-                },
-              ),
-
-              _settingsButton(
-                icon: Icons.info_outline,
-                label: 'About',
-                onTap: () {
-                  Navigator.pushNamed(context, '/welcome');
-                },
-              ),
-
-              _settingsButton(
-                icon: Icons.logout_rounded,
-                label: 'Log out',
-                onTap: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Logout'),
-                      content: const Text('Are you sure you want to logout?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
+            // Settings Options
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              child: Column(
+                children: [
+                  _settingsButton(
+                    icon: Icons.person_outline,
+                    label: 'Edit Profile',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _settingsButton(
+                    icon: Icons.lock_outline,
+                    label: 'Change Password',
+                    onTap: providerId == 'password'
+                        ? () async {
+                            final email = FirebaseAuth.instance.currentUser?.email;
+                            if (email != null) {
+                              await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Password reset email sent')),
+                                );
+                              }
+                            }
+                          }
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  _settingsButton(
+                    icon: Icons.bar_chart_outlined,
+                    label: 'Analysis',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AnalysisScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _settingsButton(
+                    icon: Icons.workspace_premium_outlined,
+                    label: 'Badges & Boosts',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const BadgeScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _settingsButton(
+                    icon: Icons.info_outline,
+                    label: 'About',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/welcome');
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  _settingsButton(
+                    icon: Icons.logout,
+                    label: 'Log out',
+                    isLogout: true,
+                    onTap: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          title: const Text('Logout'),
+                          content: const Text('Are you sure you want to logout?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(
+                                'Logout',
+                                style: TextStyle(color: Colors.red[600]),
+                              ),
+                            ),
+                          ],
                         ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Logout'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirm == true) {
-                    await FirebaseAuth.instance.signOut();
-                    if (context.mounted) {
-                      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-                    }
-                  }
-                },
+                      );
+                      if (confirm == true) {
+                        await FirebaseAuth.instance.signOut();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+                        }
+                      }
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -281,37 +321,81 @@ class _SettingsPageState extends State<SettingsPage> {
     required IconData icon,
     required String label,
     required VoidCallback? onTap,
+    bool isLogout = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: onTap == null ? Colors.grey.shade300 : Colors.teal.shade50,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: Offset(2, 4),
+    final isDisabled = onTap == null;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isLogout
+                  ? Colors.red.shade200
+                  : isDisabled
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade200,
+              width: 1,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 28, color: Colors.blue),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Montserrat',
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: onTap == null ? Colors.grey : Colors.black,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isLogout
+                      ? Colors.red.shade50
+                      : isDisabled
+                          ? Colors.grey.shade100
+                          : Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isLogout
+                      ? Colors.red[600]
+                      : isDisabled
+                          ? Colors.grey[400]
+                          : Colors.blue[700],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: isLogout
+                        ? Colors.red[600]
+                        : isDisabled
+                            ? Colors.grey[400]
+                            : Colors.grey[900],
+                  ),
+                ),
+              ),
+              if (!isDisabled)
+                Icon(
+                  Icons.chevron_right,
+                  color: isLogout ? Colors.red[300] : Colors.grey[400],
+                  size: 20,
+                ),
+            ],
+          ),
         ),
       ),
     );

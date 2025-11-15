@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -12,12 +13,12 @@ class ProfileSetupScreen extends StatefulWidget {
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _usernameController = TextEditingController(); // Changed from _nameController
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _weightController = TextEditingController();
   DateTime? _selectedBirthday;
 
   String _selectedGender = 'Male'; // Default gender
-  String? _selectedHeight;
-  String? _selectedWeight;
 
   String _heightUnit = 'cm';
   String _weightUnit = 'kg';
@@ -38,30 +39,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return age;
   }
 
-  List<String> get heightOptions {
-    if (_heightUnit == 'cm') {
-      return List.generate(111, (i) => '${120 + i} cm'); // Adjusted range
-    } else {
-      List<String> imperial = [];
-      for (int ft = 4; ft <= 7; ft++) {
-        for (int inch = 0; inch < 12; inch++) {
-          if (ft == 4 && inch < 0) continue; // Start from 4'0"
-          if (ft == 7 && inch > 6) break;   // Up to 7'6"
-          imperial.add("${ft}'${inch}\"");
-        }
-      }
-      return imperial;
-    }
-  }
-
-  List<String> get weightOptions {
-    if (_weightUnit == 'kg') {
-      return List.generate(171, (i) => '${30 + i} kg');
-    } else {
-      return List.generate(335, (i) => '${66 + i} lbs'); // Adjusted range for lbs
-    }
-  }
-
   Future<void> _checkUsernameAvailability(String username) async {
     final trimmedUsername = username.trim();
     if (trimmedUsername.isEmpty) {
@@ -76,7 +53,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     // Basic username validation (you can make this stricter)
     if (!RegExp(r"^[a-zA-Z0-9_]{3,20}$").hasMatch(trimmedUsername)) {
       setState(() {
-        _usernameStatus = '❌ Invalid (3-20 chars, a-z, 0-9, _)';
+        _usernameStatus = 'Invalid (3-20 chars, a-z, 0-9, _)';
         _usernameStatusColor = Colors.red;
         _isCheckingUsername = false;
       });
@@ -104,7 +81,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final isTaken = query.docs.any((doc) => doc.id != currentUserId);
 
       setState(() {
-        _usernameStatus = isTaken ? '❌ Username taken' : '✅ Username available';
+        _usernameStatus = isTaken ? 'Username taken' : 'Username available';
         _usernameStatusColor = isTaken ? Colors.red : Colors.green;
         _isCheckingUsername = false;
       });
@@ -152,7 +129,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     if (nameCheck.docs.isNotEmpty && nameCheck.docs.first.id != user.uid) {
       setState(() { // Update UI if somehow it got taken between check and save
-        _usernameStatus = '❌ Username taken';
+        _usernameStatus = 'Username taken';
         _usernameStatusColor = Colors.red;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,8 +148,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         'NameLower': username.toLowerCase(),
         'Age': calculatedAge,
         'Birthday': Timestamp.fromDate(_selectedBirthday!),
-        'Height': _selectedHeight ?? '',
-        'Weight': _selectedWeight ?? '',
+        'Height': _heightController.text.trim().isNotEmpty 
+            ? '${_heightController.text.trim()} $_heightUnit' 
+            : '',
+        'Weight': _weightController.text.trim().isNotEmpty 
+            ? '${_weightController.text.trim()} $_weightUnit' 
+            : '',
         'Gender': _selectedGender,
         'FocusArea': '', // To be set in profile_setup2
         'receiveRequests': true,
@@ -217,277 +198,298 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   void dispose() {
     _usernameController.dispose();
+    _heightController.dispose();
+    _weightController.dispose();
     _usernameDebounce?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background color
-      appBar: AppBar(
-        title: const Text('Create Your Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: theme.colorScheme.primary),
-        titleTextStyle: TextStyle(color: theme.textTheme.titleLarge?.color, fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '👋 Welcome!',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Let’s get your profile set up.',
-                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-
-                // Username Section
-                _buildInputCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Username', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _usernameController,
-                        keyboardType: TextInputType.text,
-                        onChanged: _checkUsernameAvailability,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) return 'Please enter a username';
-                          if (!RegExp(r"^[a-zA-Z0-9_]{3,20}$").hasMatch(value.trim())) {
-                            return 'Invalid (3-20 chars, a-z, 0-9, _)';
-                          }
-                          if (_usernameStatusColor == Colors.red) return 'Username is taken or invalid';
-                          return null;
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'e.g., FitnessFan123',
-                          prefixIcon: const Icon(Icons.alternate_email),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                        ),
-                      ),
-                      if (_usernameStatus.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0, left: 4.0),
-                          child: Text(
-                            _usernameStatus,
-                            style: TextStyle(
-                                color: _usernameStatusColor,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Birthday Picker
-                _buildInputCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Birthday', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        _buildBirthdayPicker(theme),
-                      ],
-                    )
-                ),
-                const SizedBox(height: 20),
-
-                // Height & Weight Section
-                _buildInputCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Physical Info', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 12),
-                        _buildDropdownRow(
-                          label: 'Height',
-                          value: _selectedHeight,
-                          items: heightOptions,
-                          onChanged: (val) => setState(() => _selectedHeight = val),
-                          unit: _heightUnit,
-                          unitOptions: ['cm', 'ft'],
-                          onUnitChanged: (val) {
-                            setState(() {
-                              _heightUnit = val ?? 'cm';
-                              _selectedHeight = null; // Reset selection when unit changes
-                            });
-                          },
-                          theme: theme,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildDropdownRow(
-                          label: 'Weight',
-                          value: _selectedWeight,
-                          items: weightOptions,
-                          onChanged: (val) => setState(() => _selectedWeight = val),
-                          unit: _weightUnit,
-                          unitOptions: ['kg', 'lbs'],
-                          onUnitChanged: (val) {
-                            setState(() {
-                              _weightUnit = val ?? 'kg';
-                              _selectedWeight = null; // Reset selection
-                            });
-                          },
-                          theme: theme,
-                        ),
-                      ],
-                    )
-                ),
-                const SizedBox(height: 20),
-
-                // Gender Section
-                _buildInputCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Gender', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _selectedGender,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: Colors.white.withOpacity(0.8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                          ),
-                          items: ['Male', 'Female', 'Other', 'Prefer not to say']
-                              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                              .toList(),
-                          onChanged: (value) => setState(() => _selectedGender = value!),
-                          validator: (value) => value == null ? 'Please select gender' : null,
-                        ),
-                      ],
-                    )
-                ),
-                const SizedBox(height: 24),
-
-                // Terms and Conditions
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Checkbox(
-                      value: _agreedToTerms,
-                      onChanged: (value) {
-                        setState(() => _agreedToTerms = value ?? false);
-                      },
-                      activeColor: theme.colorScheme.primary,
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          // Navigate to your terms and conditions screen
-                          // Navigator.pushNamed(context, '/terms');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Navigate to Terms & Conditions page (not implemented).'))
-                          );
-                        },
-                        child: RichText(
-                          text: TextSpan(
-                            text: 'I agree to the ',
-                            style: theme.textTheme.bodyMedium,
-                            children: [
-                              TextSpan(
-                                text: 'Terms and Conditions',
-                                style: TextStyle(
-                                  decoration: TextDecoration.underline,
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Save Button
-                ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  child: const Text('Save & Continue 🚀', style: TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(height: 30), // Bottom padding
-              ],
+      body: Stack(
+        children: [
+          // Background Image
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/images/bg.png',
+              fit: BoxFit.cover,
             ),
           ),
+          // Overlay to reduce background opacity
+          Container(
+            color: Colors.white.withOpacity(0.7),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 20),
+                    // App Logo
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Image.asset(
+                        'assets/app_icon.png',
+                        height: 70,
+                        width: 70,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    const Center(
+                      child: Text(
+                        'Create Your Profile',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        'Let\'s get you started',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Username Section
+                    _buildTextField(
+                      controller: _usernameController,
+                      hintText: 'Username',
+                      icon: Icons.alternate_email,
+                      onChanged: _checkUsernameAvailability,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'Please enter a username';
+                        if (!RegExp(r"^[a-zA-Z0-9_]{3,20}$").hasMatch(value.trim())) {
+                          return 'Invalid (3-20 chars, a-z, 0-9, _)';
+                        }
+                        if (_usernameStatusColor == Colors.red) return 'Username is taken or invalid';
+                        return null;
+                      },
+                    ),
+                    if (_usernameStatus.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                        child: Text(
+                          _usernameStatus,
+                          style: TextStyle(
+                            color: _usernameStatusColor,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+
+                    // Birthday Picker
+                    _buildBirthdayPicker(),
+                    const SizedBox(height: 20),
+
+                    // Height & Weight Section
+                    _buildHeightWeightInput(
+                      controller: _heightController,
+                      label: 'Height',
+                      icon: Icons.height,
+                      unit: _heightUnit,
+                      unitOptions: ['cm', 'ft'],
+                      onUnitChanged: (val) {
+                        setState(() {
+                          _heightUnit = val ?? 'cm';
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your height';
+                        }
+                        final num = double.tryParse(value.trim());
+                        if (num == null) {
+                          return 'Please enter a valid number';
+                        }
+                        if (num <= 0) {
+                          return 'Height must be greater than 0';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    _buildHeightWeightInput(
+                      controller: _weightController,
+                      label: 'Weight',
+                      icon: Icons.monitor_weight,
+                      unit: _weightUnit,
+                      unitOptions: ['kg', 'lbs'],
+                      onUnitChanged: (val) {
+                        setState(() {
+                          _weightUnit = val ?? 'kg';
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your weight';
+                        }
+                        final num = double.tryParse(value.trim());
+                        if (num == null) {
+                          return 'Please enter a valid number';
+                        }
+                        if (num <= 0) {
+                          return 'Weight must be greater than 0';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Gender Section
+                    _buildGenderDropdown(),
+                    const SizedBox(height: 24),
+
+                    // Terms and Conditions
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Checkbox(
+                          value: _agreedToTerms,
+                          onChanged: (value) {
+                            setState(() => _agreedToTerms = value ?? false);
+                          },
+                          activeColor: Colors.blue[700],
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(context, '/terms');
+                            },
+                            child: RichText(
+                              text: TextSpan(
+                                text: 'I agree to the ',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: 'Terms and Conditions',
+                                    style: TextStyle(
+                                      decoration: TextDecoration.underline,
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Continue',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+    void Function(String)? onChanged,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        onChanged: onChanged,
+        validator: validator,
+        decoration: InputDecoration(
+          hintText: hintText,
+          prefixIcon: Icon(icon),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
         ),
       ),
     );
   }
 
-  // Helper to build styled input cards
-  Widget _buildInputCard({required Widget child}) {
-    return Card(
-      elevation: 2.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      margin: const EdgeInsets.only(bottom: 0), // Margin handled by SizedBox between cards
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: child,
-      ),
-    );
-  }
-
-
-  Widget _buildBirthdayPicker(ThemeData theme) {
-    return InkWell( // Use InkWell for better tap feedback
+  Widget _buildBirthdayPicker() {
+    return InkWell(
       onTap: () async {
         final picked = await showDatePicker(
           context: context,
           initialDate: _selectedBirthday ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
           firstDate: DateTime(1900),
-          lastDate: DateTime.now().subtract(const Duration(days: 365 * 5)), // Minimum age 5
+          lastDate: DateTime.now().subtract(const Duration(days: 365 * 5)),
           helpText: 'Select Your Birth Date',
-          builder: (context, child) { // Optional: Theme the date picker
+          builder: (context, child) {
             return Theme(
-              data: theme.copyWith(
-                colorScheme: theme.colorScheme.copyWith(
-                  primary: theme.colorScheme.primary, // header background color
-                  onPrimary: Colors.white, // header text color
-                  onSurface: theme.textTheme.bodyLarge?.color, // body text color
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: Colors.blue[700]!,
+                  onPrimary: Colors.white,
+                  onSurface: Colors.black87,
                 ),
                 textButtonTheme: TextButtonThemeData(
                   style: TextButton.styleFrom(
-                    foregroundColor: theme.colorScheme.primary, // button text color
+                    foregroundColor: Colors.blue[700],
                   ),
                 ),
               ),
@@ -500,18 +502,24 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.8),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[300]!),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
               children: [
-                Icon(Icons.calendar_today, color: theme.colorScheme.primary, size: 20),
+                Icon(Icons.calendar_today, color: Colors.blue, size: 20),
                 const SizedBox(width: 12),
                 Text(
                   _selectedBirthday == null
@@ -519,7 +527,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       : DateFormat.yMMMd().format(_selectedBirthday!),
                   style: TextStyle(
                     fontSize: 16,
-                    color: _selectedBirthday == null ? Colors.grey[600] : theme.textTheme.bodyLarge?.color,
+                    color: _selectedBirthday == null ? Colors.grey[500] : Colors.black87,
                   ),
                 ),
               ],
@@ -531,50 +539,121 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     );
   }
 
-  Widget _buildDropdownRow({
+  Widget _buildGenderDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: _selectedGender,
+        decoration: InputDecoration(
+          hintText: 'Gender',
+          prefixIcon: Icon(Icons.person, color: Colors.blue),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        ),
+        items: ['Male', 'Female', 'Other', 'Prefer not to say']
+            .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+            .toList(),
+        onChanged: (value) => setState(() => _selectedGender = value!),
+        validator: (value) => value == null ? 'Please select gender' : null,
+      ),
+    );
+  }
+
+  Widget _buildHeightWeightInput({
+    required TextEditingController controller,
     required String label,
-    required String? value,
-    required List<String> items,
-    required void Function(String?) onChanged,
+    required IconData icon,
     required String unit,
     required void Function(String?) onUnitChanged,
     required List<String> unitOptions,
-    required ThemeData theme,
+    String? Function(String?)? validator,
   }) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start, // Align items to the top
       children: [
-        // Unit Dropdown
-        SizedBox(
-          width: 90, // Slightly wider for units like 'ft/in'
-          child: DropdownButtonFormField<String>(
-            value: unit,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            items: unitOptions.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
-            onChanged: onUnitChanged,
+            child: TextFormField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  final text = newValue.text;
+                  if (text.isEmpty) return newValue;
+                  
+                  // Count decimal points
+                  final dotCount = '.'.allMatches(text).length;
+                  if (dotCount > 1) return oldValue;
+                  
+                  // Prevent leading dot
+                  if (text.startsWith('.')) return oldValue;
+                  
+                  // Prevent multiple consecutive dots
+                  if (text.contains('..')) return oldValue;
+                  
+                  return newValue;
+                }),
+              ],
+              validator: validator,
+              decoration: InputDecoration(
+                hintText: label,
+                prefixIcon: Icon(icon, color: Colors.blue),
+                suffixText: unit,
+                suffixStyle: TextStyle(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
-        // Value Dropdown
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            value: value,
-            decoration: InputDecoration(
-              hintText: label, // Show label as hint
-              filled: true,
-              fillColor: Colors.white.withOpacity(0.8),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        SizedBox(
+          width: 80,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            isExpanded: true,
-            items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
-            onChanged: onChanged,
-            validator: (val) => val == null || val.isEmpty ? 'Please select' : null,
+            child: DropdownButtonFormField<String>(
+              value: unit,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+              ),
+              items: unitOptions.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+              onChanged: onUnitChanged,
+            ),
           ),
         ),
       ],

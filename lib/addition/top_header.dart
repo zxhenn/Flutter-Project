@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '/rewards/powerup_manager.dart';
 
 class TopHeader extends StatelessWidget {
   final VoidCallback? onAddTap;
@@ -26,158 +25,183 @@ class TopHeader extends StatelessWidget {
     final screenWidth = mediaQuery.size.width;
 
     // Calculate dynamic padding based on status bar height
-    final topPadding = statusBarHeight + 10.0; // Minimum 10px below status bar
-    final bottomPadding = 16.0;
-    final horizontalPadding = screenWidth * 0.04; // 4% of screen width
+    final topPadding = statusBarHeight + 8.0;
+    final bottomPadding = 12.0;
+    final horizontalPadding = screenWidth * 0.04;
 
     return Container(
       width: double.infinity,
-      color: Colors.blueAccent,
+      decoration: BoxDecoration(
+        color: Colors.blue[700],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       padding: EdgeInsets.fromLTRB(
         horizontalPadding,
         topPadding,
         horizontalPadding,
         bottomPadding,
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Calculate responsive sizes based on available width
-          final avatarSize = constraints.maxWidth * 0.12; // 12% of header width
-          final iconSize = constraints.maxWidth * 0.08; // 8% of header width
-          // You might want a specific height for your header image, or make it responsive
-          final headerImageHeight = constraints.maxWidth * 0.1; // Example: 10% of header width
-          final titleSize = constraints.maxWidth * 0.06; // 6% of header width
-
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Profile Menu
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  // ... your existing onSelected logic
-                  if (value == 'logout') {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Logout'),
-                          ),
-                        ],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar with border
+          PopupMenuButton<String>(
+            offset: const Offset(0, 50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 8,
+            onSelected: (value) async {
+              if (value == 'logout') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Logout'),
+                    content: const Text('Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
                       ),
-                    );
-                    if (confirm == true) {
-                      await FirebaseAuth.instance.signOut();
-                      if (context.mounted) {
-                        Navigator.pushNamedAndRemoveUntil(
-                            context, '/login', (_) => false);
-                      }
-                    }
-                  } else if (value == 'settings') {
-                    Navigator.pushNamed(context, '/settings_page');
-                  } else if (value == 'about') {
-                    Navigator.pushNamed(context, '/welcome');
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Logout'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await FirebaseAuth.instance.signOut();
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(
+                        context, '/login', (_) => false);
                   }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'settings', child: Text('Settings')),
-                  const PopupMenuItem(value: 'about', child: Text('About Us')),
-                  const PopupMenuItem(value: 'logout', child: Text('Logout')),
-                ],
-                child: CircleAvatar(
-                  radius: avatarSize / 2,
-                  backgroundColor: Colors.white,
-                  backgroundImage: user?.photoURL != null
-                      ? NetworkImage(user!.photoURL!)
-                      : null,
-                  child: user?.photoURL == null
-                      ? Text(
-                    'S', // Consider a more generic initial or icon
-                    style: TextStyle(
-                      color: Colors.blueAccent,
-                      fontSize: titleSize, // Use a responsive size
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Montserrat',
-                    ),
-                  )
-                      : null,
-                ),
-              ),
-
-              // App Title with Icon (Rectangular Image Container)
-              Expanded( // Use Expanded to allow the Row to take available space
+                }
+              } else if (value == 'settings') {
+                Navigator.pushNamed(context, '/settings_page');
+              } else if (value == 'about') {
+                Navigator.pushNamed(context, '/welcome');
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'settings',
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center, // Center the icon and title
                   children: [
-                    Container(
-                      width: 160, // Adjust width as needed, make it responsive
-                      height: 58, // Use the responsive height
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage('assets/app_icon3.png'),
-                          fit: BoxFit.fitWidth, // Image will be as wide as the container, height adjusts
-                        ),
+                    Icon(Icons.settings, size: 20, color: Colors.grey[700]),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Settings',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(width: screenWidth * 0.02),
-
                   ],
                 ),
               ),
-
-
-              // Power-up Icon
-              FutureBuilder<Map<String, dynamic>?>(
-                future: PowerupManager.getTodayPowerup(),
-                builder: (context, snapshot) {
-                  final powerup = snapshot.data;
-                  final assetPath = powerup != null
-                      ? getPowerupAssetPath(powerup['name'])
-                      : null;
-
-                  return Tooltip(
-                    message: powerup != null
-                        ? "Today's Power-up: ${powerup['name']}"
-                        : 'No power-up',
-                    child: assetPath != null
-                        ? Image.asset(
-                      assetPath,
-                      width: iconSize,
-                      height: iconSize,
-                    )
-                        : Icon(
-                      Icons.flash_on,
-                      size: iconSize,
-                      color: Colors.blueAccent, // Changed for better visibility if no image
+              PopupMenuItem<String>(
+                value: 'about',
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 20, color: Colors.grey[700]),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'About Us',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  );
-                },
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20, color: Colors.red[600]),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.red[600],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-          );
-        },
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 2.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: Colors.white,
+                backgroundImage: user?.photoURL != null
+                    ? NetworkImage(user!.photoURL!)
+                    : null,
+                child: user?.photoURL == null
+                    ? Text(
+                        user?.displayName?.isNotEmpty == true
+                            ? user!.displayName![0].toUpperCase()
+                            : user?.email?.isNotEmpty == true
+                                ? user!.email![0].toUpperCase()
+                                : 'S',
+                        style: TextStyle(
+                          color: Colors.blue[700],
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+
+          // App Logo
+          Expanded(
+            child: Center(
+              child: Container(
+                width: 160,
+                height: 58,
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/app_icon3.png'),
+                    fit: BoxFit.fitWidth,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Spacer to balance the layout (same width as avatar)
+          SizedBox(width: 44),
+        ],
       ),
     );
   }
 
-  String? getPowerupAssetPath(String name) {
-    // ... your existing getPowerupAssetPath logic
-    switch (name.toLowerCase()) {
-      case 'cardio charge':
-        return 'assets/boosts/cardio_charge.png';
-      case 'iron boost':
-        return 'assets/boosts/iron_boost.png';
-      case 'focus boost':
-        return 'assets/boosts/focus_boost.png';
-      default:
-        return null;
-    }
-  }
 }
