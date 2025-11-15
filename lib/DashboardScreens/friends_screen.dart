@@ -389,7 +389,7 @@
                     color: Colors.grey[800],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 7),
                 Text(
                   'Try a different search term',
                   style: TextStyle(
