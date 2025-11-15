@@ -6,7 +6,12 @@ import '/addition/top_header.dart'; // Assuming TopHeader handles its own SafeAr
 // import '/utils/pointing_system.dart'; // Not directly used in this UI, but good for context
 
 class ChallengeScreen extends StatefulWidget {
-  const ChallengeScreen({super.key});
+  final VoidCallback? onNavigateToFriends;
+  
+  const ChallengeScreen({
+    super.key,
+    this.onNavigateToFriends,
+  });
 
   @override
   State<ChallengeScreen> createState() => _ChallengeScreenState();
@@ -1186,7 +1191,7 @@ class _ChallengeScreenState extends State<ChallengeScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/friends_screen'),
+              onPressed: () => widget.onNavigateToFriends?.call(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[700],
                 padding: const EdgeInsets.symmetric(

@@ -34,7 +34,13 @@
         _selectedIndex = 1; // Challenge screen is at index 1
       });
     }
-  
+
+    void _navigateToFriends() {
+      setState(() {
+        _selectedIndex = 3; // Friends screen is at index 3
+      });
+    }
+
     @override
     void initState() {
       super.initState();
@@ -44,7 +50,9 @@
         DashboardHomeContent(
           onNavigateToChallenge: _navigateToChallenge,
         ),
-        const ChallengeScreen(),
+        ChallengeScreen(
+          onNavigateToFriends: _navigateToFriends,
+        ),
         const AddScreen(),
         const FriendsScreen(),
         const LeaderboardScreen(),
