@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,9 +9,7 @@ class AddScreen extends StatefulWidget {
   State<AddScreen> createState() => _AddScreenState();
 }
 
-
 class _AddScreenState extends State<AddScreen> {
-
   // For "Minutes" unit input
   final TextEditingController minHours = TextEditingController();
   final TextEditingController minMinutes = TextEditingController();
@@ -20,7 +17,6 @@ class _AddScreenState extends State<AddScreen> {
   final TextEditingController maxHours = TextEditingController();
   final TextEditingController maxMinutes = TextEditingController();
   final TextEditingController maxSeconds = TextEditingController();
-
 
   final List<String> categories = [
     'Cardiovascular Fitness',
@@ -36,7 +32,7 @@ class _AddScreenState extends State<AddScreen> {
 
   final Map<String, List<String>> baseUnits = {
     'Cardiovascular Fitness': ['Minutes', 'Distance (km)'],
-    'Strength Training': [ 'Minutes', 'Sessions'],
+    'Strength Training': ['Minutes', 'Sessions'],
     'Custom': ['Minutes', 'Distance (km)', 'Sessions'],
   };
 
@@ -84,199 +80,569 @@ class _AddScreenState extends State<AddScreen> {
     final unitLabel = selectedUnit != null ? selectedUnit!.toLowerCase() : 'unit';
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Image.asset('assets/images/bg.png', fit: BoxFit.cover, height: double.infinity, width: double.infinity),
-          BackdropFilter(filter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5)),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: Colors.blue[700],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Create Habit',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionLabel('Category & Type'),
+            const SizedBox(height: 12),
+            _buildDropdownCard(
+              icon: Icons.category,
+              title: 'Category',
+              value: selectedCategory,
+              items: categories,
+              onChanged: (val) {
+                setState(() {
+                  selectedCategory = val;
+                  selectedType = null;
+                  selectedUnit = null;
+                });
+              },
+            ),
+            if (selectedCategory != null && selectedCategory != 'Custom') ...[
+              const SizedBox(height: 16),
+              _buildDropdownCard(
+                icon: Icons.fitness_center,
+                title: 'Type',
+                value: selectedType,
+                items: typesByCategory[selectedCategory]!,
+                onChanged: (val) => setState(() => selectedType = val),
+              ),
+            ],
+            if (selectedCategory == 'Custom') ...[
+              const SizedBox(height: 16),
+              _buildTextFieldCard(
+                icon: Icons.edit,
+                title: 'Custom Type',
+                hint: 'Enter custom type',
+                onChanged: (val) => setState(() => selectedType = val),
+              ),
+            ],
+            if (selectedCategory != null) ...[
+              const SizedBox(height: 16),
+              _buildDropdownCard(
+                icon: Icons.straighten,
+                title: 'Unit',
+                value: selectedUnit,
+                items: getFilteredUnits(),
+                onChanged: (val) => setState(() => selectedUnit = val),
+              ),
+            ],
+            const SizedBox(height: 24),
+            _buildSectionLabel('Frequency & Duration'),
+            const SizedBox(height: 12),
+            _buildDropdownCard(
+              icon: Icons.calendar_today,
+              title: 'Frequency',
+              value: selectedFrequency,
+              items: frequencies,
+              onChanged: (val) {
+                setState(() {
+                  selectedFrequency = val;
+                  selectedPreset = null;
+                  durationDays = '';
+                });
+              },
+            ),
+            if (selectedFrequency == 'Weekly' || selectedFrequency == 'Monthly') ...[
+              const SizedBox(height: 16),
+              _buildDropdownCard(
+                icon: Icons.schedule,
+                title: 'Duration',
+                value: selectedPreset,
+                items: durationPresets[selectedFrequency]!,
+                onChanged: (val) {
+                  setState(() {
+                    selectedPreset = val;
+                    if (val == 'Custom') {
+                      durationDays = '';
+                    } else if (val != null && val.contains('week')) {
+                      durationDays = (int.parse(val.split(' ')[0]) * 7).toString();
+                    } else if (val != null && val.contains('month')) {
+                      durationDays = (int.parse(val.split(' ')[0]) * 30).toString();
+                    }
+                  });
+                },
+              ),
+            ],
+            if (selectedFrequency == 'Daily' || selectedPreset == 'Custom') ...[
+              const SizedBox(height: 16),
+              _buildTextFieldCard(
+                icon: Icons.date_range,
+                title: 'Duration (Days)',
+                hint: 'e.g. 30',
+                keyboardType: TextInputType.number,
+                onChanged: (val) => durationDays = val,
+              ),
+            ],
+            const SizedBox(height: 24),
+            _buildSectionLabel('Targets'),
+            const SizedBox(height: 12),
+            if (selectedUnit == 'Minutes') ...[
+              _buildMinutesTargetSection(),
+            ] else if (selectedUnit != null) ...[
+              _buildTextFieldCard(
+                icon: Icons.trending_down,
+                title: 'Minimum Target',
+                hint: 'e.g. 10 $unitLabel',
+                keyboardType: TextInputType.number,
+                onChanged: (val) => minTarget = val,
+              ),
+              const SizedBox(height: 16),
+              _buildTextFieldCard(
+                icon: Icons.trending_up,
+                title: 'Maximum Target',
+                hint: 'e.g. 20 $unitLabel',
+                keyboardType: TextInputType.number,
+                onChanged: (val) => maxTarget = val,
+              ),
+            ],
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saveHabit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[700],
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: const Text(
+                  'Create Habit',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.grey[800],
+      ),
+    );
+  }
+
+  Widget _buildDropdownCard({
+    required IconData icon,
+    required String title,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: Colors.blue[700],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    DropdownButton<String>(
+                      value: value,
+                      hint: Text(
+                        'Select $title',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 16,
+                        ),
+                      ),
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      icon: Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+                      items: items.map((item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[900],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: onChanged,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextFieldCard({
+    required IconData icon,
+    required String title,
+    required String hint,
+    TextInputType? keyboardType,
+    required Function(String) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: Colors.blue[700],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Add New Habit', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue, fontFamily: 'Montserrat')),
-                  const SizedBox(height: 24),
-                  _buildDropdown('Select Category', selectedCategory, categories, (val) {
-                    setState(() {
-                      selectedCategory = val;
-                      selectedType = null;
-                      selectedUnit = null;
-                    });
-                  }),
-                  const SizedBox(height: 16),
-                  if (selectedCategory != null && selectedCategory != 'Custom')
-                    _buildDropdown('Select Type', selectedType, typesByCategory[selectedCategory]!, (val) => setState(() => selectedType = val)),
-                  if (selectedCategory == 'Custom') ...[
-                    const Text('Custom Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6, offset: const Offset(2, 4))]),
-                      child: TextField(
-                        onChanged: (val) => setState(() => selectedType = val),
-                        decoration: const InputDecoration(hintText: 'Enter custom type', border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  TextField(
+                    keyboardType: keyboardType,
+                    onChanged: onChanged,
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      border: InputBorder.none,
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 16,
                       ),
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
                     ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (selectedCategory != null)
-                    _buildDropdown('Select Unit', selectedUnit, getFilteredUnits(), (val) => setState(() => selectedUnit = val)),
-                  const SizedBox(height: 16),
-                  _buildDropdown('Select Frequency', selectedFrequency, frequencies, (val) {
-                    setState(() {
-                      selectedFrequency = val;
-                      selectedPreset = null;
-                      durationDays = '';
-                    });
-                  }),
-                  if (selectedUnit == 'Minutes') ...[
-                    const Text('Minimum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Flexible(child: _buildTextFieldWithController('HH', minHours)),
-                        const SizedBox(width: 6),
-                        Flexible(child: _buildTextFieldWithController('MM', minMinutes)),
-                        const SizedBox(width: 6),
-                        Flexible(child: _buildTextFieldWithController('SS', minSeconds)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ValueListenableBuilder(
-                      valueListenable: minHours,
-                      builder: (_, __, ___) => ValueListenableBuilder(
-                        valueListenable: minMinutes,
-                        builder: (_, __, ___) => ValueListenableBuilder(
-                          valueListenable: minSeconds,
-                          builder: (_, __, ___) {
-                            final total = ((int.tryParse(minHours.text) ?? 0) * 60 +
-                                (int.tryParse(minMinutes.text) ?? 0) +
-                                (int.tryParse(minSeconds.text) ?? 0)) ~/ 1;
-                            return Text('≈ $total min', style: const TextStyle(color: Colors.grey));
-                          },
-                        ),
-                      ),
-                    ),
-
-
-                    const SizedBox(height: 16),
-                    const Text('Maximum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Flexible(child: _buildTextFieldWithController('HH', maxHours)),
-                        const SizedBox(width: 6),
-                        Flexible(child: _buildTextFieldWithController('MM', maxMinutes)),
-                        const SizedBox(width: 6),
-                        Flexible(child: _buildTextFieldWithController('SS', maxSeconds)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '≈ ${(int.tryParse(maxHours.text) ?? 0) * 60 + (int.tryParse(maxMinutes.text) ?? 0) + (int.tryParse(maxSeconds.text) ?? 0) ~/ 60} min',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                ] else ...[
-                    const Text('Minimum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    _buildTextField('e.g. 10 $unitLabel', (val) => minTarget = val),
-                    const SizedBox(height: 16),
-                    const Text('Maximum Target', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    _buildTextField('e.g. 20 $unitLabel', (val) => maxTarget = val),
-                  ],
-
-                  if (selectedFrequency == 'Weekly' || selectedFrequency == 'Monthly')
-                    _buildDropdown('Duration', selectedPreset, durationPresets[selectedFrequency]!, (val) {
-                      setState(() {
-                        selectedPreset = val;
-                        if (val == 'Custom') durationDays = '';
-                        else if (val!.contains('week')) durationDays = (int.parse(val.split(' ')[0]) * 7).toString();
-                        else if (val.contains('month')) durationDays = (int.parse(val.split(' ')[0]) * 30).toString();
-                      });
-                    }),
-                  if (selectedFrequency == 'Daily' || selectedPreset == 'Custom') ...[
-                    const Text('Duration (Days)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
-                    _buildTextField('e.g. 30', (val) => durationDays = val),
-                  ],
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _saveHabit,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('Save Habit', style: TextStyle(fontSize: 18, color: Colors.white, fontFamily: 'Montserrat')),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[900],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDropdown(String title, String? value, List<String> items, Function(String?) onChanged) {
+  Widget _buildMinutesTargetSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6, offset: const Offset(2, 4))]),
-          child: DropdownButton<String>(
-            value: value,
-            hint: const Text('Select...'),
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item))).toList(),
-            onChanged: onChanged,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey.shade200,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.trending_down,
+                        size: 20,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      'Minimum Target',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTimeField('HH', minHours),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTimeField('MM', minMinutes),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTimeField('SS', minSeconds),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ValueListenableBuilder(
+                  valueListenable: minHours,
+                  builder: (_, __, ___) => ValueListenableBuilder(
+                    valueListenable: minMinutes,
+                    builder: (_, __, ___) => ValueListenableBuilder(
+                      valueListenable: minSeconds,
+                      builder: (_, __, ___) {
+                        final hours = int.tryParse(minHours.text) ?? 0;
+                        final minutes = int.tryParse(minMinutes.text) ?? 0;
+                        final seconds = int.tryParse(minSeconds.text) ?? 0;
+                        final totalMinutes = (hours * 60) + minutes + (seconds ~/ 60);
+                        return Text(
+                          '≈ $totalMinutes min',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey.shade200,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.trending_up,
+                        size: 20,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      'Maximum Target',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[900],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTimeField('HH', maxHours),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTimeField('MM', maxMinutes),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildTimeField('SS', maxSeconds),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ValueListenableBuilder(
+                  valueListenable: maxHours,
+                  builder: (_, __, ___) => ValueListenableBuilder(
+                    valueListenable: maxMinutes,
+                    builder: (_, __, ___) => ValueListenableBuilder(
+                      valueListenable: maxSeconds,
+                      builder: (_, __, ___) {
+                        final hours = int.tryParse(maxHours.text) ?? 0;
+                        final minutes = int.tryParse(maxMinutes.text) ?? 0;
+                        final seconds = int.tryParse(maxSeconds.text) ?? 0;
+                        final totalMinutes = (hours * 60) + minutes + (seconds ~/ 60);
+                        return Text(
+                          '≈ $totalMinutes min',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
-  Widget _buildTextField(String hint, Function(String) onChanged) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            blurRadius: 6,
-            offset: const Offset(2, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        keyboardType: TextInputType.number,
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          hintText: hint,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildTextFieldWithController(String hint, TextEditingController controller) {
+  Widget _buildTimeField(String hint, TextEditingController controller) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6, offset: const Offset(2, 4))],
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.grey.shade300,
+          width: 1,
+        ),
       ),
       child: TextField(
         controller: controller,
         keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        maxLength: 2,
         decoration: InputDecoration(
           hintText: hint,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          counterText: '',
+          hintStyle: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 14,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.grey[900],
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -286,13 +652,33 @@ class _AddScreenState extends State<AddScreen> {
   Future<void> _saveHabit() async {
     final bool isMinutes = selectedUnit == 'Minutes';
 
-    if (selectedCategory == null || selectedType == null || selectedUnit == null || selectedFrequency == null || durationDays.isEmpty ||
-        (!isMinutes && (minTarget.isEmpty || maxTarget.isEmpty))) {
+    // Validate required fields
+    if (selectedCategory == null || selectedType == null || selectedUnit == null || selectedFrequency == null || durationDays.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please complete all fields.')));
       return;
     }
 
+    // Validate targets based on unit type
+    if (isMinutes) {
+      final minTotal = (int.tryParse(minHours.text) ?? 0) * 3600 +
+          (int.tryParse(minMinutes.text) ?? 0) * 60 +
+          (int.tryParse(minSeconds.text) ?? 0);
+      final maxTotal = (int.tryParse(maxHours.text) ?? 0) * 3600 +
+          (int.tryParse(maxMinutes.text) ?? 0) * 60 +
+          (int.tryParse(maxSeconds.text) ?? 0);
+      if (minTotal == 0 || maxTotal == 0) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter minimum and maximum targets.')));
+        return;
+      }
+    } else {
+      if (minTarget.isEmpty || maxTarget.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter minimum and maximum targets.')));
+        return;
+      }
+    }
 
     final double parsedMin = selectedUnit == 'Minutes'
         ? ((int.tryParse(minHours.text) ?? 0) * 3600 +
@@ -347,7 +733,7 @@ class _AddScreenState extends State<AddScreen> {
       });
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
