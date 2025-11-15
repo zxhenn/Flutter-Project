@@ -216,6 +216,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               fit: BoxFit.cover,
             ),
           ),
+          // Overlay to reduce background opacity
+          Container(
+            color: Colors.white.withOpacity(0.7),
+          ),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
