@@ -174,7 +174,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           width: 40,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(
-                              Icons.emoji_events,
+                              Icons.star,
                               size: 32,
                               color: Colors.white.withOpacity(0.9),
                             );
