@@ -593,7 +593,7 @@
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 160,
+              height: 180,
               child: StreamBuilder<QuerySnapshot>(
                 stream: requestRef.snapshots(),
                 builder: (context, snapshot) {
@@ -680,12 +680,13 @@
                               ],
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   CircleAvatar(
-                                    radius: 32,
+                                    radius: 26,
                                     backgroundColor: Colors.blue.shade50,
                                     backgroundImage: photoUrl.isNotEmpty
                                         ? NetworkImage(photoUrl)
@@ -696,18 +697,18 @@
                                                 ? fromName[0].toUpperCase()
                                                 : '?',
                                             style: TextStyle(
-                                              fontSize: 24,
+                                              fontSize: 20,
                                               color: Colors.blue[700],
                                               fontWeight: FontWeight.bold,
                                             ),
                                           )
                                         : null,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 6),
                                   Text(
                                     fromName,
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.grey[900],
                                     ),
@@ -715,18 +716,18 @@
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 2),
                                   Text(
                                     fromEmail,
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 10,
                                       color: Colors.grey[600],
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 6),
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
@@ -804,7 +805,8 @@
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.green,
                                             padding: const EdgeInsets.symmetric(
-                                                vertical: 8),
+                                                vertical: 4),
+                                            minimumSize: const Size(0, 32),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
@@ -814,11 +816,11 @@
                                           child: const Icon(
                                             Icons.check,
                                             color: Colors.white,
-                                            size: 20,
+                                            size: 16,
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                       Expanded(
                                         child: ElevatedButton(
                                           onPressed: () async {
@@ -841,7 +843,8 @@
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.red[600],
                                             padding: const EdgeInsets.symmetric(
-                                                vertical: 8),
+                                                vertical: 4),
+                                            minimumSize: const Size(0, 32),
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(8),
@@ -851,7 +854,7 @@
                                           child: const Icon(
                                             Icons.close,
                                             color: Colors.white,
-                                            size: 20,
+                                            size: 16,
                                           ),
                                         ),
                                       ),
