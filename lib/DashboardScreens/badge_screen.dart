@@ -37,21 +37,26 @@ class BadgeScreen extends StatelessWidget {
   ];
 
 
-  Widget _buildSectionTitle(BuildContext context, String title, IconData icon) {
-    final theme = Theme.of(context);
+  Widget _buildSectionTitle(String title, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24.0, bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: theme.colorScheme.primary, size: 28),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.blue[700], size: 20),
+          ),
+          const SizedBox(width: 12),
           Text(
             title,
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: TextStyle(
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-              // fontFamily: 'Montserrat', // Already set in theme likely
+              color: Colors.grey[900],
             ),
           ),
         ],
@@ -61,80 +66,76 @@ class BadgeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background for the whole screen
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text("Collectibles", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent, // Or theme.scaffoldBackgroundColor
+        backgroundColor: Colors.grey[50],
         elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: theme.textTheme.titleLarge?.color ?? theme.colorScheme.primary),
-        titleTextStyle: TextStyle(color: theme.textTheme.titleLarge?.color ?? theme.colorScheme.primary, fontSize: 20, fontWeight: FontWeight.bold),
-
+        title: Text(
+          "Collectibles",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[900],
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // If you have a separate TopHeader for this screen (not AppBar)
-              // const TopHeader(),
-              // const SizedBox(height: 10),
-
-              _buildSectionTitle(context, 'Your Badges', Icons.shield_outlined),
-              Card(
-                elevation: 3.0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 12.0,
-                      mainAxisSpacing: 12.0,
-                      childAspectRatio: 0.85, // Adjust for better image + text fit
+              _buildSectionTitle('Your Badges', Icons.shield_outlined),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                    itemCount: _badgesData.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final badge = _badgesData[index];
-                      return _BadgeTile(
-                        imagePath: badge['imagePath']!,
-                        label: badge['label']!,
-                      );
-                    },
+                  ],
+                ),
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 16.0,
+                    mainAxisSpacing: 16.0,
+                    childAspectRatio: 0.85,
                   ),
+                  itemCount: _badgesData.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final badge = _badgesData[index];
+                    return _BadgeTile(
+                      imagePath: badge['imagePath']!,
+                      label: badge['label']!,
+                    );
+                  },
                 ),
               ),
-
-              _buildSectionTitle(context, 'Available Power-Ups', Icons.flash_on_outlined),
-              ListView.separated(
-                itemCount: _powerUpsData.length,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final powerUp = _powerUpsData[index];
-                  // Basic color parsing from string, ideally store Color objects
-                  Color cardColor = Colors.teal.shade50; // Default
-                  // This is a hacky way to parse color string.
-                  // A better way would be to store actual Color objects or use a map.
-                  if(powerUp['color'] == 'Color(0xFFFFF3E0)') cardColor = const Color(0xFFFFF3E0);
-                  if(powerUp['color'] == 'Color(0xFFE3F2FD)') cardColor = const Color(0xFFE3F2FD);
-
-                  return _PowerUpCard(
+              const SizedBox(height: 32),
+              _buildSectionTitle('Available Power-Ups', Icons.flash_on_outlined),
+              ..._powerUpsData.map((powerUp) {
+                Color cardColor = Colors.teal.shade50;
+                if (powerUp['color'] == 'Color(0xFFFFF3E0)') cardColor = const Color(0xFFFFF3E0);
+                if (powerUp['color'] == 'Color(0xFFE3F2FD)') cardColor = const Color(0xFFE3F2FD);
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _PowerUpCard(
                     imagePath: powerUp['imagePath']!,
                     title: powerUp['title']!,
                     description: powerUp['description']!,
                     cardColor: cardColor,
-                  );
-                },
-              ),
-              const SizedBox(height: 20), // Bottom padding
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -151,27 +152,31 @@ class _BadgeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center, // Center content within the tile
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0), // Add some padding around the image
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) { // Fallback for missing assets
-                return Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey[400]);
-              },
-            ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Image.asset(
+            imagePath,
+            height: 60,
+            width: 60,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(Icons.star, size: 40, color: Colors.blue[700]);
+            },
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           label,
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
+          style: TextStyle(
+            fontSize: 12,
             fontWeight: FontWeight.w600,
             color: Colors.grey[800],
           ),
@@ -193,54 +198,73 @@ class _PowerUpCard extends StatelessWidget {
     required this.imagePath,
     required this.title,
     required this.description,
-    this.cardColor = const Color(0xFFE0F2F1), // Default light teal
+    this.cardColor = const Color(0xFFE0F2F1),
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 2.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
-      color: cardColor, // Use the passed color
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start, // Align items to the top
-          children: [
-            Image.asset(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Image.asset(
               imagePath,
-              height: 56, // Slightly smaller for better balance
-              width: 56,
+              height: 48,
+              width: 48,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.broken_image_outlined, size: 56, color: Colors.grey[400]);
+                return Icon(Icons.bolt, size: 32, color: Colors.orange[700]);
               },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface.withOpacity(0.87), // Darker text on light bg
-                    ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[900],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    description,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.75),
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.4,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
