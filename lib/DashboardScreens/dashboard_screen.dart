@@ -27,18 +27,39 @@
     bool hasPendingRequests = false;
     bool alreadyNotified = false;
   
-    final List<Widget> _screens = [
-      const DashboardHomeContent(),
-      const ChallengeScreen(),
-      const AddScreen(),
-      const FriendsScreen(),
-      const LeaderboardScreen(),
-      const BadgeScreen(),
-      const SettingsPage(),
-    ];
+    late final List<Widget> _screens;
+  
+    void _navigateToChallenge() {
+      setState(() {
+        _selectedIndex = 1; // Challenge screen is at index 1
+      });
+    }
+
+    void _navigateToFriends() {
+      setState(() {
+        _selectedIndex = 3; // Friends screen is at index 3
+      });
+    }
+
     @override
     void initState() {
       super.initState();
+      
+      // Initialize screens with callback
+      _screens = [
+        DashboardHomeContent(
+          onNavigateToChallenge: _navigateToChallenge,
+        ),
+        ChallengeScreen(
+          onNavigateToFriends: _navigateToFriends,
+        ),
+        const AddScreen(),
+        const FriendsScreen(),
+        const LeaderboardScreen(),
+        const BadgeScreen(),
+        const SettingsPage(),
+      ];
+      
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         FirebaseFirestore.instance
@@ -84,8 +105,12 @@
   }
   
   class DashboardHomeContent extends StatefulWidget {
+    final VoidCallback? onNavigateToChallenge;
   
-    const DashboardHomeContent({super.key});
+    const DashboardHomeContent({
+      super.key,
+      this.onNavigateToChallenge,
+    });
   
     @override
     State<DashboardHomeContent> createState() => _DashboardHomeContentState();
@@ -319,11 +344,8 @@
                                     const SizedBox(height: 16),
                                     TextButton(
                                       onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) => const ChallengeScreen()),
-                                        );
+                                        // Navigate to challenge screen via navigation bar
+                                        widget.onNavigateToChallenge?.call();
                                       },
                                       child: Text(
                                         'Or join a challenge',
