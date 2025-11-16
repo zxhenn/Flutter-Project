@@ -293,7 +293,7 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
       await batch.commit();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("🎉 Prize Claimed! Congratulations! 🎉")),
+          const SnackBar(content: Text("Prize Claimed! Congratulations!")),
         );
       }
       // Listener will update the UI with the new status
@@ -415,22 +415,22 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _launchTracker,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.blue[700], // modern blue
+                      padding: const EdgeInsets.symmetric(vertical: 18), // taller button
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 2,
+                      elevation: 4, // subtle shadow
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 24),
-                        const SizedBox(width: 8),
-                        const Text(
+                      children: const [
+                        Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 24),
+                        SizedBox(width: 10),
+                        Text(
                           "Track Now",
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 18, // slightly bigger text
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -445,22 +445,22 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _claimPrize,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber[700],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.amber[700], // warm color for claim
+                      padding: const EdgeInsets.symmetric(vertical: 18),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 2,
+                      elevation: 4,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.star, color: Colors.white, size: 24),
-                        const SizedBox(width: 8),
-                        const Text(
+                      children: const [
+                        Icon(Icons.star, color: Colors.white, size: 24),
+                        SizedBox(width: 10),
+                        Text(
                           "Claim Your Prize!",
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -471,6 +471,8 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
                 )
               else
                 _buildStatusDisplay(),
+
+
 
               const SizedBox(height: 20),
             ],
@@ -515,9 +517,9 @@ class _ChallengeLoggerPageState extends State<ChallengeLoggerPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Challenge vs. $_friendName",
+                      "Challenger: $_friendName",
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey[900],
                       ),

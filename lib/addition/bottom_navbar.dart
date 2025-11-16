@@ -81,7 +81,7 @@ class BottomNavBar extends StatelessWidget {
     bool hasNotification = false,
   }) {
     final isSelected = currentIndex == index;
-    
+
     if (isCenter) {
       return Expanded(
         child: Material(
@@ -104,7 +104,7 @@ class BottomNavBar extends StatelessWidget {
                     child: Icon(
                       isSelected ? selectedIcon : icon,
                       color: isSelected ? Colors.white : Colors.blue[700],
-                      size: 22,
+                      size: 44,
                     ),
                   ),
                   const SizedBox(height: 3),
